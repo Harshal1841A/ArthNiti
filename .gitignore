@@ -1,0 +1,46 @@
+# Environment — NEVER commit .env; rotate keys if they leaked
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data — SQLite DB is local state, not source code
+data/arthniti.db
+data/*.db
+data/synthetic_msme_training.csv
+
+# Models — committed so HF Spaces scoring engine loads on first boot
+# Regenerate locally with: python backend/train_model.py
+
+# Node (frontend)
+node_modules/
+dist/
+.vite/
+frontend/tsconfig.node.tsbuildinfo
+
+# IDE & tool configs — not needed in the deployed Space
+.cursor/
+.agents/
+.jetro/
+.mcp.json
+.windsurfrules
+AGENT.md
+CLAUDE.md
+ArthNiti_v1.4_Final_Claude.zip
+
+# Test & CI artifacts
+tests/integration_results.txt
+scripts/impact.log

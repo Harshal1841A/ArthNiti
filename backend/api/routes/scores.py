@@ -1,0 +1,132 @@
+"""ArthNiti — Score routes.
+
+POST /api/v1/score/{applicant_id}  → Run Core scoring model
+GET  /api/v1/score/{score_id}     → Retrieve a score
+GET  /api/v1/score                → List all scores
+
+SECURITY FIX (v1.4): Added rate limiting (30/min per IP) to score endpoint.
+"""
+
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.api.deps import get_db, get_scoring_core, verify_api_key
+from backend.api.models import ScoreResponse
+from backend.core.scoring_engine import InsufficientDataError
+from backend.database.models import Applicant, NormalizedFeatures, Score
+from backend.limiter import limiter
+
+router = APIRouter()
+
+
+@router.post("/{applicant_id}", response_model=ScoreResponse)
+@limiter.limit("30/minute")
+async def score_applicant(
+    request: Request,
+    applicant_id: str,
+    db: AsyncSession = Depends(get_db),
+    core=Depends(get_scoring_core),
+    _auth: str = Depends(verify_api_key),
+):
+    """Run the scoring model on the most recent normalized features for an applicant."""
+    applicant = await db.get(Applicant, applicant_id)
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
+
+    result = await db.execute(
+        select(NormalizedFeatures)
+        .where(NormalizedFeatures.applicant_id == applicant_id)
+        .order_by(NormalizedFeatures.computed_at.desc())
+        .limit(1)
+    )
+    features_row = result.scalar_one_or_none()
+    if not features_row:
+        raise HTTPException(status_code=400, detail="No normalized features found for this applicant. Run data fetch first.")
+
+    from backend.core.feature_schema import NormalizedApplicantFeatures
+    features = NormalizedApplicantFeatures.model_validate_json(features_row.feature_vector_json)
+
+    try:
+        score_result = core.score(features)
+    except InsufficientDataError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    score = Score(
+        applicant_id=applicant_id,
+        normalized_features_id=features_row.id,
+        score=score_result["score"],
+        tier=score_result["tier"],
+        contributing_factors_json=json.dumps(score_result["contributing_factors"]),
+        inference_ms=score_result["inference_ms"],
+        model_version=score_result["model_version"],
+    )
+    db.add(score)
+    await db.commit()
+    await db.refresh(score)
+
+    return ScoreResponse(
+        score_id=score.id,
+        applicant_id=applicant_id,
+        score=score_result["score"],
+        tier=score_result["tier"],
+        contributing_factors=score_result["contributing_factors"],
+        inference_ms=score_result["inference_ms"],
+        data_completeness_pct=score_result["data_completeness_pct"],
+        is_synthetic_applicant=applicant.is_synthetic,
+    )
+
+
+@router.get("/{score_id}", response_model=ScoreResponse)
+async def get_score(
+    score_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve a previously computed score."""
+    score = await db.get(Score, score_id)
+    if not score:
+        raise HTTPException(status_code=404, detail="Score not found")
+
+    applicant = await db.get(Applicant, score.applicant_id)
+    nf = await db.get(NormalizedFeatures, score.normalized_features_id)
+    return ScoreResponse(
+        score_id=score.id,
+        applicant_id=score.applicant_id,
+        score=score.score,
+        tier=score.tier,
+        contributing_factors=json.loads(score.contributing_factors_json),
+        inference_ms=score.inference_ms,
+        data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
+        is_synthetic_applicant=applicant.is_synthetic if applicant else True,
+    )
+
+
+@router.get("", response_model=list[ScoreResponse])
+async def list_scores(
+    applicant_id: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    limit: int = 100,
+):
+    """List all scores."""
+    stmt = select(Score).order_by(Score.computed_at.desc()).limit(limit)
+    if applicant_id:
+        stmt = stmt.where(Score.applicant_id == applicant_id)
+    result = await db.execute(stmt)
+    scores = result.scalars().all()
+    out = []
+    for score in scores:
+        applicant = await db.get(Applicant, score.applicant_id)
+        nf = await db.get(NormalizedFeatures, score.normalized_features_id)
+        out.append(ScoreResponse(
+            score_id=score.id,
+            applicant_id=score.applicant_id,
+            score=score.score,
+            tier=score.tier,
+            contributing_factors=json.loads(score.contributing_factors_json),
+            inference_ms=score.inference_ms,
+            data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
+            is_synthetic_applicant=applicant.is_synthetic if applicant else True,
+        ))
+    return out
