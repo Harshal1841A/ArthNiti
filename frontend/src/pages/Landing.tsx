@@ -103,12 +103,7 @@ export default function Landing() {
             <div className="flex items-center gap-4 pt-2">
               <Link to="/dashboard">
                 <Button size="lg" variant="glow">
-                  Enter Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/dashboard?demo=true">
-                <Button size="lg" variant="outline">
-                  <Play className="mr-2 h-4 w-4" /> Launch Demo
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
