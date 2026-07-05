@@ -106,7 +106,7 @@ export default function Landing() {
                   Enter Dashboard <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/demo">
+              <Link to="/dashboard?demo=true">
                 <Button size="lg" variant="outline">
                   <Play className="mr-2 h-4 w-4" /> Launch Demo
                 </Button>
