@@ -24,7 +24,6 @@ export default function Landing() {
             style={{
               backgroundColor: "var(--accent)",
               opacity: 0.1,
-            style={{
               width: 4 + Math.random() * 8,
               height: 4 + Math.random() * 8,
               left: `${Math.random() * 100}%`,
