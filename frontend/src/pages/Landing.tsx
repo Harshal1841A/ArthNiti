@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Shield, TrendingUp, Users, BrainCircuit, Play } from 'lucide-react';
+import { ArrowRight, Shield, TrendingUp, Users, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme, Theme } from '../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
