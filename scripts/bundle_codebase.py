@@ -50,6 +50,8 @@ EXCLUDE_FILES = {
     ".DS_Store",
     "arthniti_lovable_claude.zip",
     "ArthNiti_v1.4_Final_Claude.zip",
+    ".mcp.json",
+    ".windsurfrules",
 }
 
 
