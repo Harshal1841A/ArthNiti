@@ -24,7 +24,7 @@ const DEMO_PERSONAS = [
   { id: 'APP-SURESH', name: 'Suresh Electronics', city: 'Delhi', industry: 'Electronics', score: 61, tier: 'ADEQUATE', isNTC: true },
 ];
 
-function KPICard({ title, value, subtitle, trend, trendValue, icon, color }: any) {
+function KPICard({ title, value, subtitle, trend, trendValue, icon }: any) {
   return (
     <div className="glass-card glass-card-hover p-5 border border-[var(--border)] transition-all">
       <div className="flex items-start justify-between">
