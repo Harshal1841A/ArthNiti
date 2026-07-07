@@ -57,10 +57,25 @@ async def list_review_queue(db: AsyncSession = Depends(get_db)):
     result = await db.execute(stmt)
     reviews = result.scalars().all()
 
+    # Batch-fetch applicants and scores instead of one round-trip per row
+    # (was previously 1 + 2*N queries for N review items).
+    applicant_ids = {rev.applicant_id for rev in reviews}
+    score_ids = {rev.score_id for rev in reviews}
+
+    applicants_by_id = {}
+    if applicant_ids:
+        res = await db.execute(select(Applicant).where(Applicant.id.in_(applicant_ids)))
+        applicants_by_id = {a.id: a for a in res.scalars().all()}
+
+    scores_by_id = {}
+    if score_ids:
+        res = await db.execute(select(Score).where(Score.id.in_(score_ids)))
+        scores_by_id = {s.id: s for s in res.scalars().all()}
+
     out = []
     for rev in reviews:
-        applicant = await db.get(Applicant, rev.applicant_id)
-        score = await db.get(Score, rev.score_id)
+        applicant = applicants_by_id.get(rev.applicant_id)
+        score = scores_by_id.get(rev.score_id)
         if not applicant or not score:
             continue
 

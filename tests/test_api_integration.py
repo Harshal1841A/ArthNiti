@@ -17,12 +17,12 @@ from fastapi.testclient import TestClient
 import os
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("DEMO_MODE", "true")
-os.environ.setdefault("API_KEY", "DEMO_SECRET_KEY_123")
+os.environ.setdefault("ARTHNITI_API_KEY", "test_secret_key_999")
 os.environ.setdefault("NVIDIA_API_KEY", "test-key")
 
 from backend.main import app  # noqa: E402 — env must be set first
 
-DEMO_KEY = "Bearer DEMO_SECRET_KEY_123"
+DEMO_KEY = f"Bearer {os.environ.get('ARTHNITI_API_KEY', 'test_secret_key_999')}"
 
 
 @pytest.fixture(scope="module")
@@ -115,7 +115,34 @@ def test_create_applicant_requires_auth(client):
         "has_bureau_record": False,
         "preferred_language": "en",
     })
-    assert resp.status_code == 403, f"Expected 403, got {resp.status_code}"
+    assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
+
+
+def test_create_applicant_rejects_spoofed_origin_headers(client):
+    """Regression test: a prior version of verify_api_key trusted Origin/Referer/
+    Sec-Fetch-Site headers as a same-origin signal and skipped the key check
+    entirely for requests that set them. Those headers are attacker-controlled —
+    this was a full, zero-knowledge authentication bypass (confirmed exploitable
+    live against a running instance with no valid key at all). This test fails
+    loudly if that bypass is ever reintroduced.
+    """
+    resp = client.post(
+        "/api/v1/applicants",
+        json={
+            "business_name": "Spoofed Origin Attack",
+            "has_bureau_record": False,
+            "preferred_language": "en",
+        },
+        headers={
+            "Host": "testserver",
+            "Origin": "http://testserver",
+            "Referer": "http://testserver/applicants/new",
+            "Sec-Fetch-Site": "same-origin",
+        },
+    )
+    assert resp.status_code == 401, (
+        f"Expected 401 — spoofed same-origin headers must NOT bypass auth, got {resp.status_code}"
+    )
 
 
 def test_create_applicant_with_valid_auth(client):

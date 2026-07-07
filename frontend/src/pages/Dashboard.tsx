@@ -142,7 +142,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <KPICard title="Total Applicants" value={stats?.total_applicants || 0} subtitle="Registered MSME profiles" icon={<Users className="h-4 w-4" />} color="#3B82F6" trend="up" trendValue="+12% from last week" />
         <KPICard title="NTC/NTB Coverage" value={`${stats?.coverage_improvement_pct?.toFixed(1) || 0}%`} subtitle={`${stats?.applicants_without_bureau_record_with_usable_score || 0} usable scores`} icon={<FileCheck className="h-4 w-4" />} color="#10B981" trend="up" trendValue="+5.3% improvement" />
-        <KPICard title="Flagged for Review" value={scores.find((s) => s.tier === 'WATCH')?.count + scores.find((s) => s.tier === 'HIGH_RISK')?.count || 0} subtitle="WATCH + HIGH_RISK tiers" icon={<AlertTriangle className="h-4 w-4" />} color="#F59E0B" trend="neutral" trendValue="Stable" />
+        <KPICard title="Flagged for Review" value={(scores.find((s) => s.tier === 'WATCH')?.count || 0) + (scores.find((s) => s.tier === 'HIGH_RISK')?.count || 0)} subtitle="WATCH + HIGH_RISK tiers" icon={<AlertTriangle className="h-4 w-4" />} color="#F59E0B" trend="neutral" trendValue="Stable" />
         <KPICard title="AA Adapter Status" value="Active" subtitle="Finvu sandbox connected" icon={<Activity className="h-4 w-4" />} color="#C9A961" trend="up" trendValue="Online" />
       </div>
 

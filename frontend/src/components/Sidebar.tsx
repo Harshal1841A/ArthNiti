@@ -4,13 +4,22 @@ import {
   Users,
   FileCheck,
   Settings,
-  Shield,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   collapsed?: boolean;
+}
+
+function LedgerFoldMark() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-[18px] w-[18px]" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50,24 L14,34 L14,82 L50,74 Z" fill="none" stroke="#0A0B0F" strokeWidth="5" />
+      <path d="M50,24 L86,34 L86,82 L50,74 Z" fill="#0A0B0F" />
+      <line x1="50" y1="24" x2="50" y2="74" stroke="var(--accent)" strokeWidth="4.5" />
+    </svg>
+  );
 }
 
 export default function Sidebar({ collapsed = false }: SidebarProps) {
@@ -37,7 +46,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-[var(--border)] px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-[#0A0B0F] font-bold shadow-sm">
-          <Shield className="h-4 w-4" />
+          <LedgerFoldMark />
         </div>
         {!collapsed && (
           <div className="ml-3">

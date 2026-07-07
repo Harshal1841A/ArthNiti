@@ -115,10 +115,27 @@ async def list_scores(
         stmt = stmt.where(Score.applicant_id == applicant_id)
     result = await db.execute(stmt)
     scores = result.scalars().all()
+
+    # Batch-fetch instead of one round-trip per row per related table
+    # (was previously 1 + 2*N queries for N scores — noticeable at the
+    # default limit=100 once real data volume shows up).
+    applicant_ids = {s.applicant_id for s in scores}
+    nf_ids = {s.normalized_features_id for s in scores if s.normalized_features_id}
+
+    applicants_by_id = {}
+    if applicant_ids:
+        res = await db.execute(select(Applicant).where(Applicant.id.in_(applicant_ids)))
+        applicants_by_id = {a.id: a for a in res.scalars().all()}
+
+    nf_by_id = {}
+    if nf_ids:
+        res = await db.execute(select(NormalizedFeatures).where(NormalizedFeatures.id.in_(nf_ids)))
+        nf_by_id = {n.id: n for n in res.scalars().all()}
+
     out = []
     for score in scores:
-        applicant = await db.get(Applicant, score.applicant_id)
-        nf = await db.get(NormalizedFeatures, score.normalized_features_id)
+        applicant = applicants_by_id.get(score.applicant_id)
+        nf = nf_by_id.get(score.normalized_features_id)
         out.append(ScoreResponse(
             score_id=score.id,
             applicant_id=score.applicant_id,

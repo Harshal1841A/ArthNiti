@@ -15,6 +15,105 @@ from datetime import datetime, timezone
 router = APIRouter()
 _settings = get_settings()
 
+# NOTE ON AUTH IN THIS FILE: every route below is gated by DEMO_MODE, not by
+# verify_api_key like the real /api/v1/applicants, /consent, /score routes.
+# This is intentional, not an oversight — this namespace only ever reads or
+# writes clearly-labeled synthetic persona data and never calls the real
+# Finvu or NVIDIA APIs, so the blast radius of leaving it key-free is low.
+# Do not "fix" this by scattering verify_api_key onto individual routes here
+# without also reconsidering whether DEMO_MODE should be disabled entirely
+# on the public deployment instead.
+
+# Realistic default synthetic features used when seeding a non-persona applicant
+_SYNTHETIC_DEFAULT_FEATURES = {
+    "avg_monthly_inflow": 95000.0,
+    "inflow_volatility_coefficient": 0.41,
+    "avg_closing_balance": 22000.0,
+    "days_with_negative_balance_90d": 3,
+    "existing_emi_to_inflow_ratio": 0.22,
+    "bounce_count_90d": 2,
+    "txn_count_30d": 68,
+    "unique_counterparties_30d": 15,
+    "payment_time_consistency_score": 0.65,
+    "gst_filing_regularity_12mo": 0.58,
+    "gst_turnover_yoy_growth": 0.06,
+    "epfo_payroll_headcount_trend": None,
+    "data_completeness_pct": 0.846,
+    "had_bureau_record": False,
+    "data_sources_used": ["aa_bank_statement", "gst_return"],
+}
+
+
+@router.post("/fetch/{applicant_id}")
+@limiter.limit("30/minute")
+async def demo_fetch_applicant(
+    applicant_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Seed realistic synthetic NormalizedFeatures for any synthetic applicant.
+
+    Used by the frontend 'Fetch AA Telemetry' button when the applicant is
+    synthetic but not one of the named demo personas. Writes a NormalizedFeatures
+    row so the standard /v1/score/{id} endpoint can run the XGBoost model.
+    """
+    if not _settings.DEMO_MODE:
+        raise HTTPException(status_code=403, detail="DEMO_MODE required")
+
+    applicant = await db.get(Applicant, applicant_id)
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
+    if not applicant.is_synthetic:
+        raise HTTPException(status_code=400, detail="This endpoint is only for synthetic applicants")
+
+    # Idempotent — skip if features already exist
+    result = await db.execute(
+        select(NormalizedFeatures)
+        .where(NormalizedFeatures.applicant_id == applicant_id)
+        .order_by(NormalizedFeatures.computed_at.desc())
+        .limit(1)
+    )
+    existing_nf = result.scalar_one_or_none()
+    if existing_nf:
+        return {
+            "applicant_id": applicant_id,
+            "features_id": existing_nf.id,
+            "data_completeness_pct": existing_nf.data_completeness_pct,
+            "already_exists": True,
+        }
+
+    feat = {**_SYNTHETIC_DEFAULT_FEATURES, "had_bureau_record": applicant.has_bureau_record}
+    nf = NormalizedFeatures(
+        applicant_id=applicant_id,
+        data_sources_used=json.dumps(feat["data_sources_used"]),
+        feature_vector_json=json.dumps({
+            "applicant_id": applicant_id,
+            **{k: v for k, v in feat.items() if k != "data_sources_used"},
+            "data_sources_used": feat["data_sources_used"],
+        }),
+        data_completeness_pct=feat["data_completeness_pct"],
+    )
+    db.add(nf)
+
+    # Also log the mocked fetch so the decision trail shows DATA_FETCHED
+    fetch_log = AdapterFetchLog(
+        applicant_id=applicant_id,
+        adapter_type="aa_demo",
+        is_mocked=True,
+        fetch_status="SUCCESS",
+        fields_populated_count=13,
+    )
+    db.add(fetch_log)
+    await db.commit()
+    await db.refresh(nf)
+
+    return {
+        "applicant_id": applicant_id,
+        "features_id": nf.id,
+        "data_completeness_pct": feat["data_completeness_pct"],
+        "already_exists": False,
+    }
+
 
 @router.post("/seed")
 @limiter.limit("10/minute")

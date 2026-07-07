@@ -3,6 +3,7 @@
 Injectable dependencies for routes: DB session, LLM client, scoring core.
 """
 
+import os
 from fastapi import Request, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,14 +11,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.llm_client import LLMClient, get_llm_client
 from backend.database.db import get_db
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Simple shared API key for hackathon prototype (e.g. Bearer DEMO_SECRET_KEY_123)"""
-    if credentials.credentials != "DEMO_SECRET_KEY_123":
+    """Verify a shared API key on every request, no exceptions.
+
+    SECURITY NOTE: an earlier version of this function tried to skip the check
+    for requests it judged "same-origin" by inspecting the Origin/Referer/
+    Sec-Fetch-Site headers. Those headers are client-supplied and trivially
+    spoofable by any HTTP client (curl, requests, Postman) — that check was a
+    live, zero-knowledge authentication bypass, not a security boundary, and
+    has been removed. Do not reintroduce header-based origin checks here.
+
+    This is intentionally a single shared demo-scoped key, not per-user auth —
+    that limitation is disclosed in docs/RISK_AND_COMPLIANCE.md. The property
+    this function guarantees is narrower but real: a request cannot reach a
+    write route without presenting the configured key, full stop, regardless
+    of what headers it sends.
+
+    Fails CLOSED: if ARTHNITI_API_KEY/API_KEY is not configured in the
+    environment, every request to a protected route is rejected rather than
+    silently allowed through. A misconfigured deployment should be loudly
+    broken, not silently open.
+    """
+    expected_key = os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY")
+
+    if not expected_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Server misconfiguration: no API key configured for this deployment.",
+        )
+
+    if not credentials or credentials.credentials != expected_key:
         raise HTTPException(
             status_code=401,
-            detail="Invalid authentication credentials",
+            detail="Invalid or missing API key.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return credentials.credentials

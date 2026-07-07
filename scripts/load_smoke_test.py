@@ -21,9 +21,11 @@ import time
 
 import httpx
 
+import os
+
 DEFAULT_URL = "http://localhost:8000"
-DEMO_KEY = "Bearer DEMO_SECRET_KEY_123"
-HEADERS = {"Authorization": DEMO_KEY}
+API_KEY = os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY", "")
+HEADERS = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
 
 # Applicant IDs for which normalized features exist (from demo seed)
 DEMO_APPLICANT_IDS = ["APP-RAMESH", "APP-PRIYA", "APP-VIKRAM", "APP-ANITA", "APP-SURESH"]

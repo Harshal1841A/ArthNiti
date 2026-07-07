@@ -9,10 +9,10 @@ RUN npm ci
 
 COPY frontend/ ./
 
-# VITE_API_KEY is baked into the JS bundle at build time.
-# DEMO_SECRET_KEY_123 matches the hardcoded key in backend/api/deps.py.
-# Override at build time with: docker build --build-arg VITE_API_KEY=<key> .
-ARG VITE_API_KEY=DEMO_SECRET_KEY_123
+# VITE_API_KEY can be passed at build time if needed for external deployment:
+# docker build --build-arg VITE_API_KEY=<key> .
+# For same-origin deployments (like HF Spaces), no API key is required or baked into the JS bundle.
+ARG VITE_API_KEY
 ENV VITE_API_KEY=$VITE_API_KEY
 
 RUN npm run build

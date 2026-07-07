@@ -39,7 +39,7 @@ frontend/tsconfig.node.tsbuildinfo
 .windsurfrules
 AGENT.md
 CLAUDE.md
-ArthNiti_v1.4_Final_Claude.zip
+*.zip
 
 # Test & CI artifacts
 tests/integration_results.txt

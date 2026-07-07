@@ -57,7 +57,7 @@ class ConsentRecord(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("CON"))
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     aa_provider = Column(String, nullable=False)
     consent_handle = Column(String, nullable=False, unique=True)
@@ -87,7 +87,7 @@ class AdapterFetchLog(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     adapter_type = Column(String, nullable=False)
     consent_record_id = Column(
@@ -110,7 +110,7 @@ class NormalizedFeatures(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("FEAT"))
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     data_sources_used = Column(Text, nullable=False)  # JSON array
     feature_vector_json = Column(Text, nullable=False)
@@ -129,7 +129,7 @@ class Score(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("SCORE"))
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     normalized_features_id = Column(
         String, ForeignKey("normalized_features.id", ondelete="CASCADE"), nullable=False
@@ -157,7 +157,7 @@ class XAINarrative(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("XAI"))
     score_id = Column(
-        String, ForeignKey("scores.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("scores.id", ondelete="CASCADE"), nullable=False, index=True
     )
     narrative = Column(Text, nullable=False)
     model_used = Column(String, nullable=False)
@@ -179,7 +179,7 @@ class StubInteractionLog(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     adapter_type = Column(String, nullable=False)  # 'ocen_stub' | 'uli_stub'
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="SET NULL")
+        String, ForeignKey("applicants.id", ondelete="SET NULL"), index=True
     )
     payload_summary = Column(Text)
     occurred_at = Column(
@@ -196,7 +196,7 @@ class DocumentUpload(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("DOC"))
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     filename = Column(String, nullable=False)
     content_type = Column(String, nullable=False)
@@ -228,10 +228,10 @@ class ReviewQueue(Base):
 
     id = Column(String, primary_key=True, default=lambda: generate_id("REV"))
     applicant_id = Column(
-        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     score_id = Column(
-        String, ForeignKey("scores.id", ondelete="CASCADE"), nullable=False
+        String, ForeignKey("scores.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status = Column(
         String, nullable=False, default="pending"

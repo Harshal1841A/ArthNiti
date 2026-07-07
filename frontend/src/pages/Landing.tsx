@@ -5,6 +5,16 @@ import { Button } from '@/components/ui/button';
 import { useTheme, Theme } from '../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
 
+function LedgerFoldMark() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-6 w-6" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50,24 L14,34 L14,82 L50,74 Z" fill="none" stroke="#0A0B0F" strokeWidth="5" />
+      <path d="M50,24 L86,34 L86,82 L50,74 Z" fill="#0A0B0F" />
+      <line x1="50" y1="24" x2="50" y2="74" stroke="var(--accent)" strokeWidth="4.5" />
+    </svg>
+  );
+}
+
 export default function Landing() {
   const { theme, setTheme } = useTheme();
   
@@ -46,7 +56,7 @@ export default function Landing() {
       <div className="relative z-10 flex items-center justify-between px-8 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--bg-page)] shadow-lg shadow-[var(--shadow-glow)]">
-            <Shield className="h-6 w-6" />
+            <LedgerFoldMark />
           </div>
           <div>
             <div className="text-lg font-bold text-[var(--text-primary)] tracking-tight">ArthNiti</div>
@@ -83,18 +93,12 @@ export default function Landing() {
       <div className="relative z-10 flex-1 flex items-center justify-center px-6">
         <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--accent)]">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
-              </span>
-              IDBI Innovate 2026 — Track 03 (Financial Inclusion)
+            <div>
+              <span className="eyebrow mb-3 block">IDBI INNOVATE 2026 // TRACK 03 // FINANCIAL INCLUSION</span>
+              <h1 className="text-5xl font-serif text-[var(--text-primary)] leading-tight tracking-tight">
+                AI-Driven MSME <span className="italic text-[var(--accent)]">Financial Health</span> Assessment.
+              </h1>
             </div>
-            <h1 className="text-5xl font-extrabold text-[var(--text-primary)] leading-tight tracking-tight">
-              AI-Driven MSME<br />
-              <span className="text-[var(--accent)]">Financial Health</span><br />
-              Assessment
-            </h1>
             <p className="text-lg text-[var(--text-secondary)] leading-relaxed max-w-lg">
               ArthNiti computes a multidimensional Financial Health Score from alternate data
               (GST, UPI, AA bank statements, EPFO) for businesses that traditional bureau-based
@@ -130,7 +134,7 @@ export default function Landing() {
                   <div className="h-8 w-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] mx-auto mb-2">
                     <item.icon className="h-4 w-4" />
                   </div>
-                  <div className="text-sm font-semibold text-slate-200">{item.title}</div>
+                  <div className="text-sm font-serif font-semibold text-[var(--text-primary)]">{item.title}</div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-1">{item.desc}</div>
                 </motion.div>
               ))}
@@ -144,7 +148,7 @@ export default function Landing() {
                 <div className="h-8 w-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)]">
                   <TrendingUp className="h-4 w-4" />
                 </div>
-                <div className="text-sm font-semibold text-[var(--text-primary)]">Real-Time Scoring</div>
+                <h3 className="text-base font-serif text-[var(--text-primary)]">Real-Time <span className="italic">Scoring</span>.</h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 XGBoost core with SHAP explainability. No LLM in the synchronous scoring path.
@@ -156,7 +160,7 @@ export default function Landing() {
                 <div className="h-8 w-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
                   <Shield className="h-4 w-4" />
                 </div>
-                <div className="text-sm font-semibold text-[var(--text-primary)]">Account Aggregator (AA)</div>
+                <h3 className="text-base font-serif text-[var(--text-primary)]">Account <span className="italic">Aggregator (AA)</span>.</h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Real Finvu sandbox integration with ReBIT-spec FIU. JWE decryption, consent
@@ -168,7 +172,7 @@ export default function Landing() {
                 <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
                   <BrainCircuit className="h-4 w-4" />
                 </div>
-                <div className="text-sm font-semibold text-[var(--text-primary)]">XAI + Arth-Mitra TTS</div>
+                <h3 className="text-base font-serif text-[var(--text-primary)]">XAI + Arth-Mitra <span className="italic">TTS</span>.</h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Cross-checked LLM narratives with numeric hallucination detection. Bhashini →

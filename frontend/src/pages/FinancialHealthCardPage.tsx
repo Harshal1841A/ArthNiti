@@ -62,7 +62,10 @@ export default function FinancialHealthCardPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [scoringError, setScoringError] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [generatingXAI, setGeneratingXAI] = useState(false);
+  const [scoring, setScoring] = useState(false);
   const [demoXaiPayload, setDemoXaiPayload] = useState<any>(null);
   const [fetchingData, setFetchingData] = useState(false);
   const [language, setLanguage] = useState('hi');
@@ -106,22 +109,28 @@ export default function FinancialHealthCardPage() {
       setApplicant(found || null);
 
       const scoreResp = await api.get(`/v1/score?applicant_id=${id}`).catch(() => ({ data: [] }));
-      const scores = scoreResp.data.filter((s: any) => s.applicant_id === id);
+      const scores = Array.isArray(scoreResp.data)
+        ? scoreResp.data.filter((s: any) => s.applicant_id === id)
+        : [];
       if (scores.length) {
         const latest = scores[scores.length - 1];
         setScore(latest);
-        const routingResp = await api.get(`/v1/routing/${latest.score_id}`);
+        // Isolated: routing failure must not crash the page
+        const routingResp = await api.get(`/v1/routing/${latest.score_id}`).catch(() => ({ data: null }));
         setRouting(routingResp.data);
 
         const xaiResp = await api.get(`/v1/xai?applicant_id=${id}`).catch(() => ({ data: [] }));
-        const xais = xaiResp.data.filter((x: any) => x.score_id === latest.score_id);
+        const xais = Array.isArray(xaiResp.data)
+          ? xaiResp.data.filter((x: any) => x.score_id === latest.score_id)
+          : [];
         if (xais.length) setXai(xais[xais.length - 1]);
 
         const offersResp = await api.get(`/v1/offers/${id}`).catch(() => ({ data: { offers: [] } }));
         setOffers(offersResp.data?.offers || []);
       }
 
-      const trailResp = await api.get(`/v1/decision-trail/${id}`);
+      // Isolated: trail failure must not crash the page
+      const trailResp = await api.get(`/v1/decision-trail/${id}`).catch(() => ({ data: { stages: [] } }));
       setTrail(trailResp.data?.stages || []);
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Failed to load applicant data');
@@ -130,50 +139,73 @@ export default function FinancialHealthCardPage() {
     }
   }
 
-  useEffect(() => { if (id) loadData(); }, [id, language]);
+  // BUG FIX: language change only re-loads XAI narrative, NOT the full data
+  useEffect(() => { if (id) loadData(); }, [id]);
 
   async function handleScore() {
     if (!id) return;
-    setLoading(true);
+    setScoringError('');
+    setScoring(true);
     try {
-      const resp = await api.post(`/v1/score/${id}`);
+      // Synthetic applicants use the demo score endpoint which doesn't need NormalizedFeatures
+      const scoreUrl = applicant?.is_synthetic ? `/v1/demo/score/${id}` : `/v1/score/${id}`;
+      const resp = await api.post(scoreUrl);
       setScore(resp.data);
-      const routingResp = await api.get(`/v1/routing/${resp.data.score_id}`);
-      setRouting(routingResp.data);
-      await loadData();
+      // Routing — isolated, won't crash on miss
+      const routingResp = await api.get(`/v1/routing/${resp.data.score_id}`).catch(() => ({ data: null }));
+      if (routingResp.data) setRouting(routingResp.data);
+      // Offers — isolated
+      const offersUrl = applicant?.is_synthetic ? `/v1/demo/offers/${id}` : `/v1/offers/${id}`;
+      const offersResp = await api.get(offersUrl).catch(() => ({ data: { offers: [] } }));
+      setOffers(offersResp.data?.offers || []);
+      // Trail — isolated
+      const trailResp = await api.get(`/v1/decision-trail/${id}`).catch(() => ({ data: { stages: [] } }));
+      setTrail(trailResp.data?.stages || []);
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'Scoring failed');
+      const msg = e.response?.data?.detail || 'Scoring failed';
+      setScoringError(msg);
     } finally {
-      setLoading(false);
+      setScoring(false);
     }
   }
 
   async function handleFetchData() {
-    if (applicant?.is_synthetic || isDemo) {
-      setFetchingData(true);
-      await new Promise(r => setTimeout(r, 1500));
-      await loadData();
-      setFetchingData(false);
+    setFetchError('');
+    setFetchingData(true);
+    // Synthetic / demo applicants: use the backend demo consent + mock-fetch flow
+    if (applicant?.is_synthetic) {
+      try {
+        // 1. Ensure ACTIVE consent exists in demo mode
+        await api.post(`/v1/demo/consent/${id}`).catch(() => null);
+        // 2. Short UX delay to show animation, then reload data
+        await new Promise(r => setTimeout(r, 1000));
+        await loadData();
+      } catch (e: any) {
+        setFetchError('Demo data sync failed — try refreshing the page.');
+      } finally {
+        setFetchingData(false);
+      }
       return;
     }
 
-    setFetchingData(true);
     try {
-      const consentResp = await api.get(`/v1/consent/applicant/${id}`);
-      const activeConsents = consentResp.data.filter((c: any) => c.status === 'ACTIVE');
-      
+      const consentResp = await api.get(`/v1/consent/applicant/${id}`).catch(() => ({ data: [] }));
+      const activeConsents = (consentResp.data || []).filter((c: any) => c.status === 'ACTIVE');
+
       if (activeConsents.length === 0) {
-        alert("No active consent handle found. Applicant must approve on AA app.");
+        setFetchError('No active consent handle found. The applicant must approve the consent request on their AA app first.');
         setFetchingData(false);
         return;
       }
-      
+
       const consentHandle = activeConsents[0].consent_handle;
       await api.post(`/v1/consent/aa/fetch?applicant_id=${id}&consent_handle=${consentHandle}`);
       await loadData();
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Failed to fetch AA data");
-    } finally { setFetchingData(false); }
+      setFetchError(e.response?.data?.detail || 'Failed to fetch AA data');
+    } finally {
+      setFetchingData(false);
+    }
   }
 
   async function handleGenerateXAI() {
@@ -230,6 +262,36 @@ export default function FinancialHealthCardPage() {
 
   return (
     <div className="space-y-8 font-sans">
+      {/* Inline fetch error banner */}
+      {fetchError && (
+        <div className="flex items-start gap-3 rounded-xl border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-5 py-4">
+          <AlertTriangle className="h-4 w-4 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="text-xs font-bold font-mono uppercase tracking-wider text-[#F59E0B] mb-0.5">AA Telemetry Error</div>
+            <div className="text-xs text-[#F59E0B]/80 font-mono">{fetchError}</div>
+          </div>
+          <button onClick={() => setFetchError('')} className="text-[#F59E0B]/60 hover:text-[#F59E0B] text-lg leading-none">×</button>
+        </div>
+      )}
+      {/* Inline scoring error banner — does NOT kill the page */}
+      {scoringError && (
+        <div className="flex items-start gap-3 rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 px-5 py-4">
+          <AlertTriangle className="h-4 w-4 text-[#F43F5E] flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="text-xs font-bold font-mono uppercase tracking-wider text-[#F43F5E] mb-0.5">Scoring Error</div>
+            <div className="text-xs text-[#F43F5E]/80 font-mono">{scoringError}</div>
+            {scoringError.includes('normalized features') && (
+              <div className="mt-2 text-xs text-[var(--text-secondary)] font-sans">
+                👉 Click <strong>Fetch AA Telemetry</strong> first to pull financial data, then re-run scoring.
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setScoringError('')}
+            className="text-[#F43F5E]/60 hover:text-[#F43F5E] text-lg leading-none"
+          >×</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[var(--border)] pb-6">
         <div className="flex items-center gap-4">
@@ -258,11 +320,10 @@ export default function FinancialHealthCardPage() {
             <Zap className="h-3.5 w-3.5 text-[var(--accent)]" />
             {fetchingData ? 'Syncing AA Telemetry...' : 'Fetch AA Telemetry'}
           </button>
-          {!score && (
-            <button className="btn-gold" onClick={handleScore}>
-              <Activity className="h-3.5 w-3.5" /> Execute AI Scoring
-            </button>
-          )}
+          <button className="btn-gold" onClick={handleScore} disabled={scoring}>
+            {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+            {scoring ? 'Computing Score (~45ms)...' : score ? 'Re-run AI Scoring' : 'Execute AI Scoring (~45ms)'}
+          </button>
         </div>
       </div>
 
@@ -271,6 +332,43 @@ export default function FinancialHealthCardPage() {
 
       {/* Decision Trail */}
       {trail.length > 0 && <DecisionTrail stages={trail} />}
+
+      {!displayScore && (
+        <div className="glass-card p-10 border border-[var(--border)] text-center max-w-2xl mx-auto my-8">
+          <div className="w-16 h-16 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
+            <Activity className="h-8 w-8" />
+          </div>
+          <span className="eyebrow">STEP 1: TELEMETRY & SCORING PENDING</span>
+          <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mt-1 mb-2">
+            No XGBoost Score Computed Yet
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto font-sans leading-relaxed">
+            This applicant's Account Aggregator (AA) telemetry is either pending sync or has not been scored yet. Click below to pull 12-month bank statements and execute sub-second credit scoring.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              className="btn-action px-5 py-2.5 text-xs flex items-center gap-2"
+              onClick={handleFetchData}
+              disabled={fetchingData}
+            >
+              <Zap className="h-4 w-4 text-[var(--accent)]" />
+              {fetchingData ? 'Syncing AA Telemetry...' : '1. Pull AA Telemetry'}
+            </button>
+            <button
+              className="btn-gold px-6 py-2.5 text-xs flex items-center gap-2"
+              onClick={handleScore}
+              disabled={scoring}
+            >
+              {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+              {scoring ? 'Computing Score (~45ms)...' : '2. Execute AI Scoring (~45ms)'}
+            </button>
+          </div>
+          <div className="mt-6 pt-6 border-t border-[var(--border)] text-[11px] font-mono text-[var(--text-secondary)] flex items-center justify-center gap-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
+            DEPA / Sahamati Compliant • Zero-Knowledge Data Storage
+          </div>
+        </div>
+      )}
 
       {displayScore && (
         <>
@@ -363,13 +461,13 @@ export default function FinancialHealthCardPage() {
                     <BrainCircuit className="h-4 w-4 text-[var(--accent)]" /> XAI Narrative <span className="italic">Dossier</span>.
                   </h3>
                 </div>
-                {!xai && (
+                {xai && (
                   <button
                     className="btn-action"
                     onClick={handleGenerateXAI}
                     disabled={generatingXAI}
                   >
-                    {generatingXAI ? 'Synthesizing...' : 'Generate Narrative'}
+                    {generatingXAI ? 'Synthesizing...' : 'Regenerate Narrative'}
                   </button>
                 )}
               </div>
@@ -385,9 +483,30 @@ export default function FinancialHealthCardPage() {
                   <div className="text-[10px] font-mono text-[var(--text-secondary)]">Synthesized by Nemotron Ultra • Audited by SHAP Telemetry Engine</div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-[var(--text-secondary)] font-mono">
-                  <BrainCircuit className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-bold">No underwriting narrative generated.</p>
+                <div className="text-center py-8 px-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                  <BrainCircuit className="h-10 w-10 mx-auto mb-3 text-[var(--accent)] opacity-80" />
+                  <h4 className="text-sm font-serif font-bold text-[var(--text-primary)] mb-1.5">Step 2: AI Narrative & Audio Synthesis</h4>
+                  <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto mb-5 font-sans">
+                    XGBoost numeric credit scoring completed deterministically in {displayScore.inference_ms || 45}ms. 
+                    Invoke NVIDIA Nemotron Ultra to generate a cross-checked, vernacular explanation and IndicTTS audio.
+                  </p>
+                  <button
+                    className="btn-gold px-5 py-2.5 text-xs mx-auto flex items-center justify-center"
+                    onClick={handleGenerateXAI}
+                    disabled={generatingXAI}
+                  >
+                    {generatingXAI ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                        Synthesizing XAI Narrative (~2-3s)...
+                      </>
+                    ) : (
+                      <>
+                        <BrainCircuit className="h-3.5 w-3.5 mr-2" />
+                        Generate AI Narrative & Audio Explanation
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>

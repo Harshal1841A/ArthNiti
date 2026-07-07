@@ -26,3 +26,10 @@ The following are **not** implemented in this v1.4 prototype and would be requir
 - **Penetration Testing:** The application has not undergone formal external security testing.
 - **Production IAM:** The current system uses a simplified shared API key for demonstration purposes. Production would require role-based access control (RBAC) via OAuth2/JWTs for individual credit officers.
 - **Live LSP Connectivity:** Loan offers are currently illustrative stubs to demonstrate the OCEN protocol flow.
+
+## 5. Security Audit Note
+
+An internal review found that a prior revision of `backend/api/deps.py` attempted to let same-origin frontend requests skip the API key check by inspecting the `Origin`/`Referer`/`Sec-Fetch-Site` request headers. Those headers are client-supplied and trivially spoofable by any HTTP client — this was confirmed as a live, zero-knowledge authentication bypass against a running instance (a request with no valid key at all, only forged headers, could create real records). This has been reverted: `verify_api_key` now checks the shared key on every request with no origin-based exception, fails closed (rejects, rather than allows, if no key is configured in the environment), and is covered by a permanent regression test (`test_create_applicant_rejects_spoofed_origin_headers` in `tests/test_api_integration.py`) so this specific bypass cannot silently reappear.
+
+This does not change the disclosed limitation above — the shared key is still a demo-scoped mechanism, not per-officer auth. The property that was broken and is now restored is narrower: a request cannot reach a write route without presenting the actual configured key, regardless of what headers it sends.
+

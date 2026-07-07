@@ -1,0 +1,23 @@
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="640" height="220" fill="#0A0B0F"/>
+
+  <g transform="translate(48, 48)">
+    <rect x="0" y="0" width="124" height="124" rx="26" fill="#14151B" stroke="#262832" stroke-width="1.5"/>
+    <g transform="translate(19, 24) scale(0.68)">
+      <path d="M50,24 L14,34 L14,82 L50,74 Z" fill="none" stroke="#C9A961" stroke-width="3.5"/>
+      <path d="M50,24 L86,34 L86,82 L50,74 Z" fill="#C9A961"/>
+      <line x1="50" y1="24" x2="50" y2="74" stroke="#14151B" stroke-width="3"/>
+      <line x1="60" y1="45" x2="78" y2="41" stroke="#14151B" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="60" y1="55" x2="78" y2="51" stroke="#14151B" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="60" y1="65" x2="78" y2="61" stroke="#14151B" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <text x="205" y="118" font-family="Playfair Display, Georgia, serif" font-size="64"
+        font-weight="600" fill="#F2F0E9">Arth<tspan font-style="italic" fill="#C9A961">Niti</tspan></text>
+
+  <line x1="205" y1="140" x2="592" y2="140" stroke="#262832" stroke-width="1.5"/>
+
+  <text x="205" y="164" font-family="JetBrains Mono, monospace" font-size="15"
+        letter-spacing="1.5" fill="#8B8D97">ALTERNATE-DATA MSME UNDERWRITING</text>
+</svg>

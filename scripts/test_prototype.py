@@ -6,7 +6,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 
-def test_syntax(file_path: Path) -> bool:
+def _check_syntax(file_path: Path) -> bool:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             ast.parse(f.read())
@@ -24,7 +24,7 @@ def test_all_backend_syntax():
     for py_file in backend_dir.rglob("*.py"):
         if "__pycache__" in str(py_file):
             continue
-        if test_syntax(py_file):
+        if _check_syntax(py_file):
             ok += 1
         else:
             fail += 1
