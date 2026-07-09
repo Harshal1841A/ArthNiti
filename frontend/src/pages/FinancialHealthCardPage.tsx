@@ -52,7 +52,7 @@ function simulateScore(features: Record<string, number>): { score: number; tier:
 export default function FinancialHealthCardPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const isDemo = searchParams.has('demo');
+  const isDemo = searchParams.has('demo') || Boolean(id?.startsWith('DEMO-') || id?.startsWith('APP-'));
 
   const [applicant, setApplicant] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
@@ -74,6 +74,7 @@ export default function FinancialHealthCardPage() {
 
   const loadData = useCallback(async () => {
     if (!id) return;
+    setXai(null);
     try {
       let appResp;
       if (isDemo) {
@@ -85,12 +86,14 @@ export default function FinancialHealthCardPage() {
           setTrail(d.decision_trail);
           setRouting(d.routing);
           setOffers(d.loan_offers);
-          setDemoXaiPayload({
+          const xaiPayload = {
             xai_id: `DEMO-XAI-${id}`,
             narrative: d.xai_narrative[language] || d.xai_narrative['en'],
             cross_check_passed: true,
             unsupported_claims: [],
-          });
+          };
+          setDemoXaiPayload(xaiPayload);
+          setXai(xaiPayload);
           setWhatIfFeatures({
             gst_filing_regularity_12mo: d.features.gst_filing_regularity_12mo ?? 0.5,
             bounce_count_90d: d.features.bounce_count_90d ?? 0,
@@ -126,7 +129,11 @@ export default function FinancialHealthCardPage() {
         const xais = Array.isArray(xaiResp.data)
           ? xaiResp.data.filter((x: any) => x.score_id === latest.score_id)
           : [];
-        if (xais.length) setXai(xais[0]);
+        if (xais.length) {
+          setXai(xais[0]);
+        } else {
+          setXai(null);
+        }
 
         const offersResp = await api.get(`/v1/offers/${id}`).catch(() => ({ data: { offers: [] } }));
         setOffers(offersResp.data?.offers || []);

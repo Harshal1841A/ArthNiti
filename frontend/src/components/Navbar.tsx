@@ -28,12 +28,12 @@ export default function Navbar() {
       if (
         pathname.startsWith('/reviews') ||
         pathname.startsWith('/adapters') ||
-        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-P1'))
+        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-') && !pathname.includes('APP-'))
       ) {
         navigate('/demo');
       }
     } else {
-      if (pathname === '/demo' || pathname.includes('DEMO-P1')) {
+      if (pathname === '/demo') {
         navigate('/dashboard');
       }
     }

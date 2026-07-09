@@ -5,7 +5,7 @@ from sqlalchemy import select, func
 from backend.api.deps import get_db
 from backend.api.models import ConsentStatusResponse, ScoreResponse, DocumentUploadStatusResponse
 from backend.config import get_settings
-from backend.data.demo_personas import DEMO_PERSONAS, get_persona_by_id, list_persona_summaries
+from backend.data.demo_personas import ALIAS_MAP, DEMO_PERSONAS, get_persona_by_id, list_persona_summaries
 from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures, ReviewQueue, Score, XAINarrative
 from backend.adapters.ocen_adapter import generate_offers_for_score
 from backend.limiter import limiter
@@ -64,7 +64,8 @@ async def demo_fetch_applicant(
     if not _settings.DEMO_MODE:
         raise HTTPException(status_code=403, detail="DEMO_MODE required")
 
-    applicant = await db.get(Applicant, applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    applicant = await db.get(Applicant, target_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
     if not applicant.is_synthetic:
@@ -73,14 +74,14 @@ async def demo_fetch_applicant(
     # Idempotent — skip if features already exist
     result = await db.execute(
         select(NormalizedFeatures)
-        .where(NormalizedFeatures.applicant_id == applicant_id)
+        .where(NormalizedFeatures.applicant_id == target_id)
         .order_by(NormalizedFeatures.computed_at.desc())
         .limit(1)
     )
     existing_nf = result.scalar_one_or_none()
     if existing_nf:
         return {
-            "applicant_id": applicant_id,
+            "applicant_id": target_id,
             "features_id": existing_nf.id,
             "data_completeness_pct": existing_nf.data_completeness_pct,
             "already_exists": True,
@@ -88,10 +89,10 @@ async def demo_fetch_applicant(
 
     feat = {**_SYNTHETIC_DEFAULT_FEATURES, "had_bureau_record": applicant.has_bureau_record}
     nf = NormalizedFeatures(
-        applicant_id=applicant_id,
+        applicant_id=target_id,
         data_sources_used=json.dumps(feat["data_sources_used"]),
         feature_vector_json=json.dumps({
-            "applicant_id": applicant_id,
+            "applicant_id": target_id,
             **{k: v for k, v in feat.items() if k != "data_sources_used"},
             "data_sources_used": feat["data_sources_used"],
         }),
@@ -101,7 +102,7 @@ async def demo_fetch_applicant(
 
     # Also log the mocked fetch so the decision trail shows DATA_FETCHED
     fetch_log = AdapterFetchLog(
-        applicant_id=applicant_id,
+        applicant_id=target_id,
         adapter_type="aa_demo",
         is_mocked=True,
         fetch_status="SUCCESS",
@@ -112,7 +113,7 @@ async def demo_fetch_applicant(
     await db.refresh(nf)
 
     return {
-        "applicant_id": applicant_id,
+        "applicant_id": target_id,
         "features_id": nf.id,
         "data_completeness_pct": feat["data_completeness_pct"],
         "already_exists": False,
@@ -289,13 +290,14 @@ async def demo_consent(
     if not _settings.DEMO_MODE:
         raise HTTPException(status_code=403, detail="DEMO_MODE required")
 
-    applicant = await db.get(Applicant, applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    applicant = await db.get(Applicant, target_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
 
     # Check if consent already exists
     result = await db.execute(
-        select(ConsentRecord).where(ConsentRecord.applicant_id == applicant_id)
+        select(ConsentRecord).where(ConsentRecord.applicant_id == target_id)
             .order_by(ConsentRecord.created_at.desc()).limit(1)
     )
     existing = result.scalar_one_or_none()
@@ -308,10 +310,10 @@ async def demo_consent(
             aa_provider="finvu_sandbox_demo",
         )
 
-    consent_handle = f"DEMO-{applicant_id}-CONSENT"
+    consent_handle = f"DEMO-{target_id}-CONSENT"
     now = datetime.now(timezone.utc)
     record = ConsentRecord(
-        applicant_id=applicant_id,
+        applicant_id=target_id,
         aa_provider="finvu_sandbox_demo",
         consent_handle=consent_handle,
         fi_types_requested=json.dumps(["DEPOSIT"]),
@@ -345,15 +347,16 @@ async def demo_score(
     if not _settings.DEMO_MODE:
         raise HTTPException(status_code=403, detail="DEMO_MODE required")
 
-    persona = get_persona_by_id(applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    persona = get_persona_by_id(target_id)
     if not persona:
         raise HTTPException(status_code=404, detail="Persona not found")
 
     # Return the pre-computed score result, but wrapped in the same response model
     sc = persona["score_result"]
     return ScoreResponse(
-        score_id=f"DEMO-SCORE-{applicant_id}",
-        applicant_id=applicant_id,
+        score_id=f"DEMO-SCORE-{target_id}",
+        applicant_id=target_id,
         score=sc["score"],
         tier=sc["tier"],
         contributing_factors=sc["contributing_factors"],
@@ -373,12 +376,13 @@ async def demo_offers(
     if not _settings.DEMO_MODE:
         raise HTTPException(status_code=403, detail="DEMO_MODE required")
 
-    persona = get_persona_by_id(applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    persona = get_persona_by_id(target_id)
     if not persona:
         raise HTTPException(status_code=404, detail="Persona not found")
 
     return {
-        "applicant_id": applicant_id,
+        "applicant_id": target_id,
         "score": persona["score_result"]["score"],
         "tier": persona["score_result"]["tier"],
         "offers": persona["loan_offers"],

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_db, verify_api_key
 from backend.api.models import ApplicantCreateRequest, ApplicantResponse
+from backend.data.demo_personas import ALIAS_MAP
 from backend.database.models import Applicant
 
 router = APIRouter()
@@ -21,6 +22,7 @@ async def create_applicant(
     db: AsyncSession = Depends(get_db),
     _auth: str = Depends(verify_api_key),
 ):
+    """Register a new MSME applicant."""
     applicant = Applicant(
         business_name=req.business_name,
         has_bureau_record=req.has_bureau_record,
@@ -42,11 +44,12 @@ async def create_applicant(
 @router.get("", response_model=list[ApplicantResponse])
 async def list_applicants(
     db: AsyncSession = Depends(get_db),
-    limit: int = Query(100, ge=1, le=500, description="Max items per page"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ):
+    """BUG-10 FIX: Added offset/limit pagination parameters to prevent unbounded queries."""
     result = await db.execute(
-        select(Applicant).order_by(Applicant.created_at.desc()).limit(limit).offset(offset)
+        select(Applicant).order_by(Applicant.created_at.desc()).offset(offset).limit(limit)
     )
     applicants = result.scalars().all()
     return [
@@ -68,7 +71,8 @@ async def get_applicant(
     db: AsyncSession = Depends(get_db),
 ):
     """BUG-17 FIX: Retrieve a single applicant by ID directly, without fetching the entire list."""
-    applicant = await db.get(Applicant, applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    applicant = await db.get(Applicant, target_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
     return ApplicantResponse(

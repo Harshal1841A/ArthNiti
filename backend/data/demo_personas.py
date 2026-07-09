@@ -476,10 +476,19 @@ SURESH = {
 
 DEMO_PERSONAS: list[dict[str, Any]] = [RAMESH, PRIYA, VIKRAM, ANITA, SURESH]
 
+ALIAS_MAP: dict[str, str] = {
+    "DEMO-P1": "APP-RAMESH",
+    "DEMO-P2": "APP-PRIYA",
+    "DEMO-P3": "APP-VIKRAM",
+    "DEMO-P4": "APP-ANITA",
+    "DEMO-P5": "APP-SURESH",
+}
+
 
 def get_persona_by_id(persona_id: str) -> dict[str, Any] | None:
+    target_id = ALIAS_MAP.get(persona_id, persona_id)
     for p in DEMO_PERSONAS:
-        if p["applicant"]["id"] == persona_id:
+        if p["applicant"]["id"] == target_id:
             return p
     return None
 

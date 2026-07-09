@@ -39,14 +39,14 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
       if (
         pathname.startsWith('/reviews') ||
         pathname.startsWith('/adapters') ||
-        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-P1'))
+        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-') && !pathname.includes('APP-'))
       ) {
         navigate('/demo');
       }
     } else {
       setPersona('credit_officer');
       // Redirect out of borrower-only routes immediately
-      if (pathname === '/demo' || pathname.includes('DEMO-P1')) {
+      if (pathname === '/demo') {
         navigate('/dashboard');
       }
     }
@@ -56,7 +56,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
     persona === 'borrower'
       ? [
           { to: '/demo', icon: Zap, label: 'Instant Loan Demo' },
-          { to: '/applicants/DEMO-P1/health-card', icon: CreditCard, label: 'My Health Card' },
+          { to: '/applicants/APP-SURESH/health-card?demo=true', icon: CreditCard, label: 'My Health Card' },
           { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
         ]
       : [

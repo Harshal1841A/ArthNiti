@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_db, get_scoring_core, verify_api_key
 from backend.api.models import ScoreResponse
 from backend.core.scoring_engine import InsufficientDataError
+from backend.data.demo_personas import ALIAS_MAP
 from backend.database.models import Applicant, NormalizedFeatures, Score
 from backend.limiter import limiter
 
@@ -32,13 +33,14 @@ async def score_applicant(
     _auth: str = Depends(verify_api_key),
 ):
     """Run the scoring model on the most recent normalized features for an applicant."""
-    applicant = await db.get(Applicant, applicant_id)
+    target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    applicant = await db.get(Applicant, target_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
 
     result = await db.execute(
         select(NormalizedFeatures)
-        .where(NormalizedFeatures.applicant_id == applicant_id)
+        .where(NormalizedFeatures.applicant_id == target_id)
         .order_by(NormalizedFeatures.computed_at.desc())
         .limit(1)
     )
@@ -117,7 +119,8 @@ async def get_score(
     )
     stmt = select(Score)
     if applicant_id:
-        stmt = stmt.where(Score.applicant_id == applicant_id)
+        target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+        stmt = stmt.where(Score.applicant_id == target_id)
     stmt = stmt.order_by(Score.computed_at.desc()).limit(limit)
     result = await db.execute(stmt)
     scores = result.scalars().all()

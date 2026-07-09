@@ -13,7 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_db, get_llm_client, verify_api_key
 from backend.api.models import XAINarrativeResponse
 from backend.core.xai_narrative import generate_narrative
+from backend.data.demo_personas import ALIAS_MAP
 from backend.database.models import Score, XAINarrative
+from backend.limiter import limiter
 
 router = APIRouter()
 
@@ -72,7 +74,8 @@ async def list_xai(
     """List XAI narratives."""
     stmt = select(XAINarrative)
     if applicant_id:
-        stmt = stmt.join(Score, XAINarrative.score_id == Score.id).where(Score.applicant_id == applicant_id)
+        target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+        stmt = stmt.join(Score, XAINarrative.score_id == Score.id).where(Score.applicant_id == target_id)
     stmt = stmt.order_by(XAINarrative.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     items = result.scalars().all()

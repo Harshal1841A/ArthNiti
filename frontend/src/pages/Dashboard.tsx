@@ -90,7 +90,7 @@ function BorrowerOverview() {
             <Zap className="h-4 w-4" /> Launch Instant Loan Demo
           </Link>
           <Link
-            to="/applicants/DEMO-P1/health-card"
+            to="/applicants/APP-SURESH/health-card?demo=true"
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
           >
             <FileCheck className="h-4 w-4" /> View My 360° Health Card
@@ -164,7 +164,7 @@ function BorrowerOverview() {
           </Link>
 
           <Link
-            to="/applicants/DEMO-P1/health-card"
+            to="/applicants/APP-SURESH/health-card?demo=true"
             className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
           >
             <div>
