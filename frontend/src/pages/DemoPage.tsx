@@ -20,12 +20,13 @@ import ArthMitraPlayer, {
   ENGLISH_NARRATIVES,
 } from '@/components/ArthMitraPlayer';
 
+// BUG-13 FIX: Use correct backend persona IDs (APP-MOHAMMED, APP-LAKSHMI)
 const DEMO_PERSONAS = [
-  { id: 'APP-RAMESH', name: 'Ramesh Kumar', business: 'Patel Electronics', city: 'Ahmedabad', score: 72, tier: 'ADEQUATE' },
-  { id: 'APP-PRIYA', name: 'Priya Sharma', business: 'Sharma Handlooms', city: 'Jaipur', score: 85, tier: 'STRONG' },
-  { id: 'APP-VIKRAM', name: 'Vikram Singh', business: 'Vikram Auto Parts', city: 'Hyderabad', score: 45, tier: 'WATCH' },
-  { id: 'APP-ANITA', name: 'Anita Sharma', business: 'Anita Catering', city: 'Chennai', score: 28, tier: 'HIGH_RISK' },
-  { id: 'APP-SURESH', name: 'Suresh Gupta', business: 'Gupta Textiles', city: 'Surat', score: 61, tier: 'ADEQUATE' },
+  { id: 'APP-RAMESH', name: 'Ramesh Kumar', business: 'Ramesh General Store', city: 'Indore', score: 72, tier: 'ADEQUATE' },
+  { id: 'APP-PRIYA', name: 'Priya Sharma', business: 'Priya Textiles', city: 'Surat', score: 85, tier: 'STRONG' },
+  { id: 'APP-MOHAMMED', name: 'Mohammed Ahmed', business: 'Mohammed Enterprises', city: 'Hyderabad', score: 45, tier: 'WATCH' },
+  { id: 'APP-LAKSHMI', name: 'Lakshmi Devi', business: 'Lakshmi Dairy Products', city: 'Chennai', score: 28, tier: 'HIGH_RISK' },
+  { id: 'APP-SURESH', name: 'Suresh Gupta', business: 'Suresh Electronics', city: 'Delhi', score: 61, tier: 'ADEQUATE' },
 ];
 
 const TIER_CONFIG: Record<string, { color: string; bg: string; border: string; label: string }> = {

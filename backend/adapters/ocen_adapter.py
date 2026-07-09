@@ -41,7 +41,10 @@ class OCENLoanApplicationResponse(BaseModel):
     message: str = "Mocked OCEN stub — no real LSP connected."
 
 
-@router.post("/ocen/v1/loan-application", response_model=OCENLoanApplicationResponse)
+# BUG-15 FIX: Route was /ocen/v1/loan-application but router is mounted at /api/v1/ocen,
+# so the full path was /api/v1/ocen/ocen/v1/loan-application — unreachable.
+# Corrected to /v1/loan-application → /api/v1/ocen/v1/loan-application.
+@router.post("/v1/loan-application", response_model=OCENLoanApplicationResponse)
 async def receive_loan_application(payload: OCENLoanApplicationStub):
     """MOCKED ENDPOINT. Shaped to Lender-side OCEN interaction."""
     from backend.database.models import generate_id

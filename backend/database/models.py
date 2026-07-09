@@ -29,7 +29,9 @@ Base = declarative_base()
 
 
 def generate_id(prefix: str) -> str:
-    return f"{prefix}-{str(uuid.uuid4())[:8].upper()}"
+    # BUG-01 FIX: use .hex (no hyphens) and take 12 chars for ~281 trillion unique IDs per prefix.
+    # Old: str(uuid4())[:8] sliced a hyphenated string giving only 16M unique values — collision-prone.
+    return f"{prefix}-{uuid.uuid4().hex[:12].upper()}"
 
 
 # ---------------------------------------------------------------------------

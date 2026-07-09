@@ -26,11 +26,15 @@ def route_decision(tier: str) -> dict:
             "requires_review": False,
         }
     if tier == "HIGH_RISK":
+        # BUG-07 FIX: HIGH_RISK must also require human review before adverse action.
+        # Automatically rejecting without a review queue entry violates adverse action
+        # notice requirements — the officer must confirm the decision.
         return {
-            "routing": "REJECT",
-            "next_step": "issue_adverse_action_notice",
-            "requires_review": False,
+            "routing": "ENHANCED_REVIEW",
+            "next_step": "route_to_human_officer_for_adverse_action",
+            "requires_review": True,
         }
+    # WATCH tier
     return {
         "routing": "ENHANCED_REVIEW",
         "next_step": "route_to_human_officer",

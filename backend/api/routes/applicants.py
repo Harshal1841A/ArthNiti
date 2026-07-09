@@ -60,3 +60,22 @@ async def list_applicants(
         )
         for a in applicants
     ]
+
+
+@router.get("/{applicant_id}", response_model=ApplicantResponse)
+async def get_applicant(
+    applicant_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """BUG-17 FIX: Retrieve a single applicant by ID directly, without fetching the entire list."""
+    applicant = await db.get(Applicant, applicant_id)
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
+    return ApplicantResponse(
+        id=applicant.id,
+        business_name=applicant.business_name,
+        has_bureau_record=applicant.has_bureau_record,
+        is_synthetic=applicant.is_synthetic,
+        preferred_language=applicant.preferred_language,
+        created_at=applicant.created_at.isoformat() if applicant.created_at else None,
+    )

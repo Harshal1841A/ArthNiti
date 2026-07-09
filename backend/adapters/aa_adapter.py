@@ -275,11 +275,19 @@ def _parse_amount(val) -> float:
 
 
 def _parse_txn_date(date_str: str) -> datetime | None:
+    """BUG-24/BUG-25 FIX: All parsed dates are normalized to UTC-aware datetimes.
+    Previously, format '%Y-%m-%dT%H:%M:%S' returned naive datetimes which caused
+    TypeError when compared/sorted against timezone-aware cutoffs in Python 3.12+.
+    """
     if not date_str:
         return None
     for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
         try:
-            return datetime.strptime(date_str, fmt)
+            dt = datetime.strptime(date_str, fmt)
+            # Normalize to UTC-aware if naive
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
         except ValueError:
             continue
     return None
@@ -302,6 +310,9 @@ def _avg_monthly_inflow(credits: list[dict]) -> float | None:
 
 
 def _inflow_volatility(credits: list[dict]) -> float | None:
+    """BUG-16 FIX: Use sample std dev (divide by n-1) instead of population std dev.
+    With only n=2 months, population std underestimates true volatility by 29%.
+    """
     monthly = {}
     for c in credits:
         d = c["date"]
@@ -315,21 +326,31 @@ def _inflow_volatility(credits: list[dict]) -> float | None:
     mean = sum(vals) / len(vals)
     if mean == 0:
         return None
-    std = (sum((v - mean) ** 2 for v in vals) / len(vals)) ** 0.5
+    # Sample std dev: divide by (n-1) not n
+    std = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
     return std / mean
 
 
 def _days_with_negative_balance(transactions: list[dict], latest_date: datetime | None = None) -> int | None:
+    """BUG-04 FIX: Return None when no balance data exists (not 0).
+    Previously always returned 0 even when no balance fields were present,
+    masking a missing-data scenario and inflating applicant scores.
+    """
     cutoff = (latest_date - timedelta(days=90)) if latest_date else None
     neg = 0
+    has_balance_data = False
     for tx in transactions:
         d = _parse_txn_date(tx.get("txnDate", tx.get("date", "")))
         if cutoff and d and d < cutoff:
             continue
         bal = tx.get("balance", tx.get("currentBalance"))
-        if bal is not None and _parse_amount(bal) < 0:
-            neg += 1
-    return neg if neg > 0 else 0
+        if bal is not None:
+            has_balance_data = True
+            if _parse_amount(bal) < 0:
+                neg += 1
+    if not has_balance_data:
+        return None  # No balance data at all — signal missing, not zero
+    return neg
 
 
 def _existing_emi_to_inflow_ratio(debits: list[dict], avg_inflow: float | None) -> float | None:
@@ -373,12 +394,17 @@ def _txn_count_30d(transactions: list[dict], latest_date: datetime | None = None
 
 
 def _unique_counterparties(transactions: list[dict], latest_date: datetime | None = None) -> int | None:
+    """BUG-06 FIX: Return 0 (not None) when transactions exist but no counterparties match.
+    None means 'no data', 0 means 'data present, zero unique counterparties detected'.
+    """
     cutoff = (latest_date - timedelta(days=30)) if latest_date else None
     counterparties = set()
+    has_data_in_window = False
     for tx in transactions:
         d = _parse_txn_date(tx.get("txnDate", tx.get("date", "")))
         if cutoff and d and d < cutoff:
             continue
+        has_data_in_window = True
         narration = str(tx.get("narration", ""))
         parts = narration.split("/")
         for part in parts:
@@ -386,13 +412,22 @@ def _unique_counterparties(transactions: list[dict], latest_date: datetime | Non
             if "@" in part or len(part) > 5:
                 counterparties.add(part)
                 break
-    return len(counterparties) if counterparties else None
+    if not has_data_in_window:
+        return None  # No transactions in window — genuinely missing
+    return len(counterparties)  # 0 is a valid value when data exists
 
 
 def _payment_time_consistency(credits: list[dict]) -> float | None:
     """Compute circular std-dev of incoming payment timestamps.
 
     Returns 1 - normalized_circular_std, where higher = more consistent.
+
+    NOTE (BUG-11): This measures clustering by hour-of-day (0-2π mapped to 24h),
+    which is not ideal for B2B MSME payments that typically cluster by day-of-month
+    rather than time-of-day. The metric will give low scores to businesses that
+    consistently receive end-of-month payments at varying hours.
+    A future improvement should measure circular consistency on day-of-month (1-31)
+    rather than hour-of-day. Left as-is for model compatibility; retrain before changing.
     """
     if len(credits) < 3:
         return None

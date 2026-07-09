@@ -9,7 +9,7 @@ SECURITY FIX (v1.4): Added rate limiting (30/min per IP) to score endpoint.
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,12 +107,16 @@ async def get_score(
 async def list_scores(
     applicant_id: str | None = None,
     db: AsyncSession = Depends(get_db),
-    limit: int = 100,
+    limit: int = Query(100, ge=1, le=500, description="Max results (BUG-21 FIX: bounded)"),
 ):
     """List all scores."""
-    stmt = select(Score).order_by(Score.computed_at.desc()).limit(limit)
+    # BUG-08 FIX: Build full WHERE clause BEFORE applying ORDER BY + LIMIT.
+    # Previously WHERE was chained after LIMIT which causes SQLAlchemy to emit
+    # a subquery where LIMIT precedes the filter, potentially missing records.
+    stmt = select(Score)
     if applicant_id:
         stmt = stmt.where(Score.applicant_id == applicant_id)
+    stmt = stmt.order_by(Score.computed_at.desc()).limit(limit)
     result = await db.execute(stmt)
     scores = result.scalars().all()
 

@@ -5,6 +5,7 @@ import {
   FileCheck,
   Settings,
   ChevronRight,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +31,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/applicants', icon: Users, label: 'MSME Profiles' },
     { to: '/reviews', icon: FileCheck, label: 'Underwriting' },
+    { to: '/demo', icon: Zap, label: 'Demo Sandbox' },
     { to: '/adapters', icon: Settings, label: 'Adapters' },
   ];
 

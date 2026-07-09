@@ -104,9 +104,10 @@ export default function FinancialHealthCardPage() {
         }
       }
 
-      appResp = await api.get('/v1/applicants');
-      const found = appResp.data.find((a: any) => a.id === id);
-      setApplicant(found || null);
+      // BUG-17 FIX: Fetch the specific applicant by ID instead of loading all applicants
+      // and filtering client-side. The new GET /v1/applicants/{id} endpoint is O(1) vs O(n).
+      appResp = await api.get(`/v1/applicants/${id}`).catch(() => ({ data: null }));
+      setApplicant(appResp.data || null);
 
       const scoreResp = await api.get(`/v1/score?applicant_id=${id}`).catch(() => ({ data: [] }));
       const scores = Array.isArray(scoreResp.data)
@@ -139,8 +140,11 @@ export default function FinancialHealthCardPage() {
     }
   }
 
-  // BUG FIX: language change only re-loads XAI narrative, NOT the full data
-  useEffect(() => { if (id) loadData(); }, [id]);
+  // BUG-05 FIX: Add 'language' to the dependency array.
+  // Previously, changing language did not trigger loadData(), so the XAI narrative
+  // displayed in the old language until the user manually refreshed.
+  // loadData() reads `language` state and uses it to select the correct narrative.
+  useEffect(() => { if (id) loadData(); }, [id, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleScore() {
     if (!id) return;
@@ -199,7 +203,9 @@ export default function FinancialHealthCardPage() {
       }
 
       const consentHandle = activeConsents[0].consent_handle;
-      await api.post(`/v1/consent/aa/fetch?applicant_id=${id}&consent_handle=${consentHandle}`);
+      // BUG-03 FIX: Send applicant_id and consent_handle in POST body, not query string.
+      // Query string params get logged by every proxy, CDN, and browser history.
+      await api.post(`/v1/consent/aa/fetch`, { applicant_id: id, consent_handle: consentHandle });
       await loadData();
     } catch (e: any) {
       setFetchError(e.response?.data?.detail || 'Failed to fetch AA data');

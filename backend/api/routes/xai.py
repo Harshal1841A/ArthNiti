@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db, get_llm_client
+from backend.api.deps import get_db, get_llm_client, verify_api_key
 from backend.api.models import XAINarrativeResponse
 from backend.core.xai_narrative import generate_narrative
 from backend.database.models import Score, XAINarrative
@@ -23,6 +23,7 @@ async def generate_xai(
     score_id: str,
     db: AsyncSession = Depends(get_db),
     llm_client=Depends(get_llm_client),
+    _auth: str = Depends(verify_api_key),
 ):
     """Generate XAI narrative for a score and cross-check it."""
     score = await db.get(Score, score_id)

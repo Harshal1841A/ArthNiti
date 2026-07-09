@@ -72,8 +72,13 @@ def cross_check_narrative(narrative: str, score_result: dict) -> dict:
         source.add(str(round(abs(shap_val), 1)))
         source.add(str(round(abs(shap_val), 2)))
 
-    # Add common timeframes, statutory references, and model versions
-    for common_val in ["1", "2", "3", "4", "5", "10", "12", "15", "30", "45", "60", "90", "180", "365", "2026", "406", "1.2", "1.3", "2.5"]:
+    # BUG-22 FIX: Previously whitelisted 1-5 unconditionally, allowing the LLM to
+    # hallucinate critical credit integers ("missed 3 payments", "bounce count 4")
+    # without triggering the cross-check. Now only allow structural timeframes and
+    # scale bounds that carry no independent credit meaning.
+    # Single digits (1-9) are intentionally NOT in this list — if the LLM mentions
+    # a specific count or value, it must derive from the actual contributing factors.
+    for common_val in ["10", "12", "15", "30", "45", "60", "90", "180", "365", "2026", "100", "1.0", "1.2", "1.3", "2.5", "0.0", "0.5"]:
         source.add(common_val)
 
     claimed_norm = set()

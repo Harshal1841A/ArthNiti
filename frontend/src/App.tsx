@@ -18,6 +18,7 @@ const NewApplication = lazy(() => import('./pages/NewApplication'));
 const FinancialHealthCardPage = lazy(() => import('./pages/FinancialHealthCardPage'));
 const AdapterStatus = lazy(() => import('./pages/AdapterStatus'));
 const ReviewQueuePage = lazy(() => import('./pages/ReviewQueuePage'));
+const DemoModePage = lazy(() => import('./pages/DemoModePage'));
 
 function RouteFallback() {
   return (
@@ -56,6 +57,7 @@ export default function App() {
                       <Route path="/applicants/:id" element={<FinancialHealthCardPage />} />
                       <Route path="/reviews" element={<ReviewQueuePage />} />
                       <Route path="/adapters" element={<AdapterStatus />} />
+                      <Route path="/demo" element={<DemoModePage />} />
                     </Routes>
                   </Suspense>
                 </main>

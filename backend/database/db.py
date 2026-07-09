@@ -38,6 +38,7 @@ _AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
+async_session_maker = _AsyncSessionLocal
 
 
 async def init_db():

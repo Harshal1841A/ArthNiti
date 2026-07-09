@@ -117,7 +117,10 @@ async def _call_llm_extractor(document_text: str, llm_client: LLMClient) -> str:
 
 def _parse_and_validate_llm_output(raw: str) -> dict:
     """Parse LLM output as JSON, strip markdown fences, validate numeric ranges."""
-    clean = re.sub(r"```(?:json)?", "", raw).strip()
+    # BUG-10 FIX: Strip both opening (```json or ```) and closing (```) fences.
+    # Old regex r"```(?:json)?" only stripped opening fences — if the LLM wraps
+    # output in a full code block, the trailing ``` remained and broke json.loads.
+    clean = re.sub(r"```(?:json)?\n?|```", "", raw).strip()
     try:
         data = json.loads(clean)
     except json.JSONDecodeError as e:

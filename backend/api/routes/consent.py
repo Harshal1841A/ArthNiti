@@ -8,7 +8,8 @@ POST /api/v1/consent/aa/fetch             → Fetch + normalize AA data
 import json
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +39,25 @@ async def create_consent(
     applicant = await db.get(Applicant, req.applicant_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
+
+    # BUG-14 FIX: Deduplicate consent requests. If an ACTIVE or PENDING consent
+    # already exists for this applicant, return it instead of creating a duplicate.
+    existing_result = await db.execute(
+        select(ConsentRecord)
+        .where(
+            ConsentRecord.applicant_id == req.applicant_id,
+            ConsentRecord.status.in_(["ACTIVE", "PENDING"]),
+        )
+        .order_by(ConsentRecord.created_at.desc())
+        .limit(1)
+    )
+    existing_consent = existing_result.scalar_one_or_none()
+    if existing_consent:
+        return ConsentStatusResponse(
+            consent_handle=existing_consent.consent_handle,
+            status=existing_consent.status,
+            aa_provider=existing_consent.aa_provider,
+        )
 
     consent_req = ConsentRequest(
         applicant_id=req.applicant_id,
@@ -107,19 +127,22 @@ async def get_consent_status(
     )
 
 
+class AAFetchRequest(BaseModel):
+    """BUG-03 FIX: applicant_id and consent_handle moved to POST body to prevent
+    sensitive tokens appearing in URL query strings (server logs, browser history, CDN)."""
+    applicant_id: str
+    consent_handle: str
+
+
 @router.post("/aa/fetch")
 async def fetch_aa_data(
-    applicant_id: str = Query(..., description="Applicant ID"),
-    consent_handle: str = Query(..., description="Consent handle from AA flow"),
+    req: AAFetchRequest,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
-    """Fetch AA data, decrypt, normalize, and store features.
-
-    SECURITY FIX (v1.4): Removed auto-activation of PENDING consents.
-    The real AA sandbox requires the applicant to approve consent on their
-    AA app before it becomes ACTIVE. Auto-activating bypassed the entire
-    consent flow, creating a critical integrity loophole.
-    """
+    """Fetch AA data, decrypt, normalize, and store features."""
+    applicant_id = req.applicant_id
+    consent_handle = req.consent_handle
     applicant = await db.get(Applicant, applicant_id)
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")

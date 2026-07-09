@@ -27,12 +27,15 @@ from backend.core.scoring_engine import FEATURE_ORDER
 def main():
     data_path = _repo_root / "data" / "synthetic_msme_training.csv"
     if not data_path.exists():
-        print(f"Training data not found at {data_path}")
-        print("Run: python backend/data/generate_synthetic_training_data.py")
-        sys.exit(1)
-
-    df = pd.read_csv(data_path)
-    print(f"Loaded {len(df)} rows from {data_path}")
+        print(f"Training data not found at {data_path}. Generating synthetic dataset...")
+        from backend.data.generate_synthetic_training_data import generate
+        df = generate(2000, 42)
+        data_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(data_path, index=False)
+        print(f"Generated and saved training data to {data_path}")
+    else:
+        df = pd.read_csv(data_path)
+        print(f"Loaded {len(df)} rows from {data_path}")
 
     X = df[FEATURE_ORDER].copy()
     y = df["repayment_success"]

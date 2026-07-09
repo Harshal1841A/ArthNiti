@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Building2, Landmark, Wallet, ArrowRight, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Loader2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
 
-interface LoanOffer {
+export interface LoanOffer {
   lender_name: string;
   lender_type: string;
   interest_rate_annual: number;
@@ -17,6 +17,7 @@ interface LoanOffer {
 
 interface LoanOfferCarouselProps {
   offers: LoanOffer[];
+  onSelectOffer?: (offer: LoanOffer) => void;
 }
 
 const LENDER_ICONS: Record<string, React.ReactNode> = {
@@ -31,18 +32,72 @@ const LENDER_COLORS: Record<string, string> = {
   NBFC: '#F59E0B',
 };
 
-export default function LoanOfferCarousel({ offers }: LoanOfferCarouselProps) {
+export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCarouselProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [acceptedBid, setAcceptedBid] = useState<LoanOffer | null>(null);
+  const [bidStage, setBidStage] = useState<'idle' | 'signing' | 'disbursed'>('idle');
+  const [mandateId, setMandateId] = useState<string>('');
+
+  const handleSelectBid = (offer: LoanOffer, index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIndex(index);
+    setAcceptedBid(offer);
+    setBidStage('signing');
+    setMandateId(`OCEN-MANDATE-${Math.floor(100000 + Math.random() * 900000)}`);
+    
+    if (onSelectOffer) {
+      onSelectOffer(offer);
+    }
+
+    setTimeout(() => {
+      setBidStage('disbursed');
+    }, 1400);
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!acceptedBid) return;
+    const receipt = {
+      protocol: 'OCEN 4.0 / Account Aggregator Mandate',
+      mandate_id: mandateId,
+      timestamp: new Date().toISOString(),
+      lender: {
+        name: acceptedBid.lender_name,
+        type: acceptedBid.lender_type,
+      },
+      terms: {
+        sanction_amount_inr: acceptedBid.max_amount,
+        interest_rate_apr: acceptedBid.interest_rate_annual,
+        tenure_months: acceptedBid.tenure_months,
+        monthly_emi_inr: acceptedBid.emi,
+        processing_fee_pct: acceptedBid.processing_fee_pct,
+        disbursement_sla_days: acceptedBid.disbursement_days,
+      },
+      status: 'MANDATE_REGISTERED_DISBURSEMENT_INITIATED',
+      cryptographic_hash: `SHA256:8f9a2b4c1d3e5f7a9b0c2d4e6f8a0b2c4d6e8f0a2b4c6e8f0a2b4c6e8f0a2b4c`,
+    };
+
+    const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${mandateId}_Receipt.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="glass-card p-6 border border-[var(--border)] flex flex-col justify-between">
+    <div className="glass-card p-6 border border-[var(--border)] flex flex-col justify-between space-y-6">
       <div>
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
           <div>
             <h3 className="text-lg font-serif font-bold text-[var(--text-primary)] tracking-tight">OCEN Loan Marketplace</h3>
-            <p className="text-xs font-mono text-[var(--text-secondary)] mt-0.5">Real-time credit protocol offers</p>
+            <p className="text-xs font-mono text-[var(--text-secondary)] mt-0.5">Real-time credit protocol offers & instant e-sign mandates</p>
           </div>
-          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-primary)]">{(offers || []).length} ACTIVE BIDS</span>
+          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-primary)]">
+            {(offers || []).length} ACTIVE BIDS
+          </span>
         </div>
 
         {!(offers && offers.length > 0) ? (
@@ -54,26 +109,27 @@ export default function LoanOfferCarousel({ offers }: LoanOfferCarouselProps) {
             </p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+          <div className="flex gap-5 overflow-x-auto pb-4 snap-x pt-1">
             {offers.map((offer, index) => {
               const isSelected = index === selectedIndex;
               const color = LENDER_COLORS[offer.lender_type] || '#64748B';
+              const isThisBidAccepted = acceptedBid?.lender_name === offer.lender_name;
 
               return (
                 <motion.div
                   key={index}
                   onClick={() => setSelectedIndex(index)}
-                  className={`flex-shrink-0 w-[270px] rounded-xl border p-5 cursor-pointer transition-all duration-300 snap-start flex flex-col justify-between ${
-                    isSelected ? 'border-[var(--accent-emerald)]/60 bg-[var(--accent-emerald)]/5 shadow-md' : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--border-subtle)]'
+                  className={`flex-shrink-0 w-[290px] min-h-[380px] rounded-xl border p-5 cursor-pointer transition-all duration-300 snap-start flex flex-col justify-between shadow-sm ${
+                    isSelected ? 'border-[var(--accent-emerald)]/70 bg-[var(--accent-emerald)]/5 ring-1 ring-[var(--accent-emerald)]/30' : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--border-subtle)]'
                   }`}
                   whileHover={{ y: -3 }}
                   animate={isSelected ? { scale: 1.01 } : { scale: 1 }}
                 >
-                  <div>
+                  <div className="space-y-4">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-4 border-b border-[var(--border-subtle)] pb-3">
+                    <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex items-center justify-center w-8 h-8 rounded border" style={{ borderColor: `${color}40`, backgroundColor: `${color}15`, color }}>
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg border shadow-sm" style={{ borderColor: `${color}40`, backgroundColor: `${color}15`, color }}>
                           {LENDER_ICONS[offer.lender_type]}
                         </div>
                         <div>
@@ -82,62 +138,164 @@ export default function LoanOfferCarousel({ offers }: LoanOfferCarouselProps) {
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="flex items-center justify-center w-6 h-6 rounded bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)]">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)]">
                           <Check className="h-3.5 w-3.5" />
                         </div>
                       )}
                     </div>
 
                     {/* Rate */}
-                    <div className="mb-4">
-                      <div className="text-3xl font-bold font-mono tracking-tight" style={{ color }}>
+                    <div>
+                      <div className="text-3xl font-bold font-mono tracking-tight leading-none" style={{ color }}>
                         {offer.interest_rate_annual}%
                       </div>
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)]">Annual Percentage Rate</div>
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] mt-1">Annual Percentage Rate</div>
                     </div>
 
                     {/* Details */}
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      <div className="rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Monthly EMI</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{offer.emi.toLocaleString()}</div>
                       </div>
-                      <div className="rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
+                      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Tenure</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.tenure_months} MO</div>
                       </div>
-                      <div className="rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
+                      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Limit</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{(offer.max_amount / 100000).toFixed(1)}L</div>
                       </div>
-                      <div className="rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
+                      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Turnaround</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.disbursement_days} DAYS</div>
                       </div>
                     </div>
 
                     {/* Features */}
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {offer.features.slice(0, 2).map((f, i) => (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {offer.features.map((f, i) => (
                         <span key={i} className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-secondary)] uppercase">{f}</span>
                       ))}
                     </div>
                   </div>
 
                   {/* CTA */}
-                  <button className={`w-full py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
-                    isSelected
-                      ? 'bg-[var(--accent-emerald)] text-black font-bold shadow-sm'
-                      : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--border-subtle)]'
-                  }`}>
-                    Select Protocol Bid <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="pt-4 mt-auto">
+                    <button
+                      type="button"
+                      onClick={(e) => handleSelectBid(offer, index, e)}
+                      className={`w-full py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        isThisBidAccepted && bidStage === 'disbursed'
+                          ? 'bg-[#10B981] text-white font-bold shadow-md ring-2 ring-[#10B981]/50'
+                          : isThisBidAccepted && bidStage === 'signing'
+                          ? 'bg-[var(--border-subtle)] text-[var(--accent)] font-bold animate-pulse'
+                          : isSelected
+                          ? 'bg-[var(--accent-emerald)] text-black font-bold shadow-md hover:opacity-90'
+                          : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--border-subtle)]'
+                      }`}
+                    >
+                      {isThisBidAccepted && bidStage === 'signing' ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Executing Mandate...
+                        </>
+                      ) : isThisBidAccepted && bidStage === 'disbursed' ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Mandate Registered
+                        </>
+                      ) : (
+                        <>
+                          Select Protocol Bid <ArrowRight className="h-3.5 w-3.5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Interactive OCEN Protocol Acceptance Overlay / Dossier Card */}
+      <AnimatePresence>
+        {acceptedBid && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            className="rounded-xl border border-[var(--accent-emerald)]/50 bg-[var(--accent-emerald)]/5 p-5 font-sans space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="h-5 w-5 text-[var(--accent-emerald)]" />
+                <div>
+                  <h4 className="text-sm font-serif font-bold text-[var(--text-primary)]">
+                    OCEN 4.0 Mandate Handshake — {acceptedBid.lender_name}
+                  </h4>
+                  <p className="text-[10px] font-mono text-[var(--text-secondary)]">
+                    Mandate ID: <span className="text-[var(--text-primary)] font-bold">{mandateId}</span> • ULI / AA Consent Locked
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)] uppercase flex items-center gap-1">
+                  {bidStage === 'signing' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                  {bidStage === 'signing' ? 'Signing & Verifying...' : 'AA Mandate Executed'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Sanction Limit</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{(acceptedBid.max_amount / 100000).toFixed(2)} Lakhs</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Interest Rate</span>
+                <span className="text-sm font-mono font-bold text-[var(--accent-emerald)]">{acceptedBid.interest_rate_annual}% APR</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Tenure & EMI</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{acceptedBid.emi.toLocaleString()} / {acceptedBid.tenure_months}m</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Disbursement SLA</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">{acceptedBid.disbursement_days} Days (Direct Bank)</span>
+              </div>
+            </div>
+
+            {bidStage === 'disbursed' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2"
+              >
+                <div className="text-xs font-mono text-[var(--text-secondary)] flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[var(--accent-emerald)] animate-ping" />
+                  Cryptographic AA e-Sign Verified. Funds scheduled for direct transfer via Account Aggregator rail.
+                </div>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleDownloadReceipt}
+                    className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[var(--accent-emerald)] text-black font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Mandate Receipt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAcceptedBid(null)}
+                    className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-mono text-xs hover:bg-[var(--surface-raised)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Switch Offer
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

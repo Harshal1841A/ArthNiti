@@ -34,6 +34,12 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security
     silently allowed through. A misconfigured deployment should be loudly
     broken, not silently open.
     """
+    # BUG-02 FIX: In DEMO_MODE, allow requests without an API key so the demo UI
+    # works on HF Spaces without requiring the operator to configure ARTHNITI_API_KEY.
+    demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("true", "1", "yes")
+    if demo_mode:
+        return "demo"
+
     expected_key = os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY")
 
     if not expected_key:

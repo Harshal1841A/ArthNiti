@@ -6,11 +6,11 @@ from backend.api.deps import get_db
 from backend.api.models import ConsentStatusResponse, ScoreResponse, DocumentUploadStatusResponse
 from backend.config import get_settings
 from backend.data.demo_personas import DEMO_PERSONAS, get_persona_by_id, list_persona_summaries
-from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures, Score, XAINarrative
+from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures, ReviewQueue, Score, XAINarrative
 from backend.adapters.ocen_adapter import generate_offers_for_score
 from backend.limiter import limiter
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 _settings = get_settings()
@@ -115,12 +115,10 @@ async def demo_fetch_applicant(
     }
 
 
-@router.post("/seed")
-@limiter.limit("10/minute")
-async def seed_demo_data(request: Request, db: AsyncSession = Depends(get_db)):
-    """Seed all 5 demo personas into the database."""
+async def seed_demo_personas_db(db: AsyncSession) -> int:
+    """Core database seeding logic for demo personas and review queue items."""
     if not _settings.DEMO_MODE:
-        raise HTTPException(status_code=403, detail="DEMO_MODE must be enabled to seed demo data.")
+        return 0
 
     for persona in DEMO_PERSONAS:
         app = persona["applicant"]
@@ -227,7 +225,32 @@ async def seed_demo_data(request: Request, db: AsyncSession = Depends(get_db)):
             db.add(fetch_log)
             await db.commit()
 
-    return {"seeded": len(DEMO_PERSONAS)}
+        # Upsert ReviewQueue item if persona requires review or has WATCH / HIGH_RISK tier
+        if sc["tier"] in ("WATCH", "HIGH_RISK") or persona.get("routing", {}).get("requires_review"):
+            result = await db.execute(
+                select(ReviewQueue).where(ReviewQueue.applicant_id == app["id"]).limit(1)
+            )
+            if not result.scalar_one_or_none():
+                review_item = ReviewQueue(
+                    applicant_id=app["id"],
+                    score_id=score.id,
+                    status="pending" if sc["tier"] == "WATCH" else "in_review",
+                    notes=f"Auto-flagged by F9 Routing: {sc['tier']} risk profile."
+                )
+                db.add(review_item)
+                await db.commit()
+
+    return len(DEMO_PERSONAS)
+
+
+@router.post("/seed")
+@limiter.limit("10/minute")
+async def seed_demo_data(request: Request, db: AsyncSession = Depends(get_db)):
+    """Seed all 5 demo personas into the database."""
+    if not _settings.DEMO_MODE:
+        raise HTTPException(status_code=403, detail="DEMO_MODE must be enabled to seed demo data.")
+    count = await seed_demo_personas_db(db)
+    return {"seeded": count}
 
 
 @router.get("/personas")
@@ -276,6 +299,7 @@ async def demo_consent(
         )
 
     consent_handle = f"DEMO-{applicant_id}-CONSENT"
+    now = datetime.now(timezone.utc)
     record = ConsentRecord(
         applicant_id=applicant_id,
         aa_provider="finvu_sandbox_demo",
@@ -284,6 +308,11 @@ async def demo_consent(
         purpose="Demo mode pre-loaded data",
         purpose_code="101",
         status="ACTIVE",
+        # BUG-23 FIX: These three NOT NULL columns were absent, causing IntegrityError
+        # on every demo_consent call. A demo consent covers 180 days backward, expires in 7.
+        data_range_from=now - timedelta(days=180),
+        data_range_to=now,
+        consent_expiry=now + timedelta(days=7),
     )
     db.add(record)
     await db.commit()

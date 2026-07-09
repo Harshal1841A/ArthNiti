@@ -49,20 +49,40 @@ async def lifespan(app: FastAPI):
     if _settings.DEMO_MODE:
         import logging
         logging.warning("=" * 60)
-        logging.warning("WARNING: DEMO_MODE is enabled.")
+        logging.warning("WARNING: DEMO_MODE is enabled. Auto-seeding synthetic MSME personas...")
         logging.warning("DEMO_MODE gates /api/v1/demo/* for persona seeding. Real AA sandbox is still hit.")
         logging.warning("=" * 60)
         print("=" * 60)
-        print("WARNING: DEMO_MODE is enabled.")
+        print("WARNING: DEMO_MODE is enabled. Auto-seeding synthetic MSME personas...")
         print("DEMO_MODE gates /api/v1/demo/* for persona seeding. Real AA sandbox is still hit.")
         print("=" * 60)
+        try:
+            from backend.database.db import _AsyncSessionLocal as async_session_maker
+            from backend.api.routes.demo import seed_demo_personas_db
+            async with async_session_maker() as db_session:
+                await seed_demo_personas_db(db_session)
+            logging.info("Successfully auto-seeded demo personas into database on startup!")
+            print("Successfully auto-seeded demo personas into database on startup!")
+        except Exception as e:
+            logging.exception("Failed to auto-seed demo personas on startup: %s", e)
+            print(f"Failed to auto-seed demo personas on startup: {e}")
 
-    # Load scoring model into app state
+    # BUG-30 FIX: Ensure scoring model exists. Run train_model.py if model not present.
+    model_path = Path(_settings.MODEL_PATH)
+    if not model_path.exists():
+        import logging
+        logging.warning("Model not found at %s. Running train_model.py on startup...", _settings.MODEL_PATH)
+        try:
+            from backend.train_model import main as train_model_main
+            train_model_main()
+            logging.info("Model successfully trained and saved on startup!")
+        except Exception as e:
+            logging.exception("Failed to auto-train model on startup: %s", e)
+
     try:
         app.state.scoring_core = ScoringCore(_settings.MODEL_PATH)
     except FileNotFoundError:
         import logging
-
         logging.warning(
             f"Model not found at {_settings.MODEL_PATH}. "
             f"Run `python backend/train_model.py` before scoring."

@@ -33,6 +33,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc libffi-dev 
 # Application source
 COPY backend/ ./backend/
 COPY models/  ./models/
+COPY data/    ./data/
+
+# BUG-30 FIX: Ensure model exists at build time. Runs train_model.py (which auto-generates data if needed).
+RUN python backend/train_model.py || true
 
 # Pre-built React bundle from Stage 1
 COPY --from=frontend-builder /build/dist ./frontend/dist
@@ -50,5 +54,16 @@ ENV DEMO_MODE=true
 ENV DATABASE_URL=sqlite+aiosqlite:////app/data/arthniti.db
 ENV MODEL_PATH=/app/models/xgb_model.json
 ENV FRONTEND_URL=*
+
+# BUG-28 NOTE: HF Spaces runs on ephemeral storage — /app/data is NOT persisted
+# across container restarts. Every restart wipes the SQLite database and re-seeds
+# demo personas. For production use, mount a persistent volume at /app/data or
+# switch to a hosted Postgres instance and update DATABASE_URL accordingly.
+#
+# BUG-02 FIX: DEMO_MODE=true now bypasses verify_api_key entirely, so
+# ARTHNITI_API_KEY is not required for demo deployments. Setting it here
+# as empty string documents the intent; real deployments should override this
+# with a strong secret via the HF Spaces "Secrets" settings panel.
+ENV ARTHNITI_API_KEY=
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]

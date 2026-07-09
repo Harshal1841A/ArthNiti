@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Volume2, Globe } from 'lucide-react';
+import { Play, Pause, Volume2, Globe, VolumeX } from 'lucide-react';
 
 const LANGUAGES = [
-  { code: 'hi', label: 'Hindi' },
-  { code: 'en', label: 'English' },
-  { code: 'ta', label: 'Tamil' },
-  { code: 'te', label: 'Telugu' },
-  { code: 'mr', label: 'Marathi' },
+  { code: 'hi', label: 'Hindi (हिंदी)', ttsLang: 'hi-IN' },
+  { code: 'en', label: 'English', ttsLang: 'en-IN' },
+  { code: 'ta', label: 'Tamil (தமிழ்)', ttsLang: 'ta-IN' },
+  { code: 'te', label: 'Telugu (తెలుగు)', ttsLang: 'te-IN' },
+  { code: 'mr', label: 'Marathi (मराठी)', ttsLang: 'mr-IN' },
+  { code: 'gu', label: 'Gujarati (ગુજરાતી)', ttsLang: 'gu-IN' },
+  { code: 'kn', label: 'Kannada (ಕನ್ನಡ)', ttsLang: 'kn-IN' },
 ];
 
 interface ArthMitraPlayerProps {
@@ -20,74 +22,164 @@ interface ArthMitraPlayerProps {
   isFallback?: boolean;
 }
 
-// Pre-generated narratives for hackathon demo personas
-export const HINDI_NARRATIVES: Record<string, string> = {
-  "APP-RAMESH": "Ramesh ji, aapka financial health score 72 hai. Ye ADEQUATE tier hai. Aapki monthly income stable hai, aur payment timing bhi consistent hai. GST filing 60% hai — theek hai par aur behtar ho sakta hai. 90 din mein ek bounce dikha hai — chhoti si chinta. Cash flow overall theek hai, working capital loan ke liye sidha approval mil sakta hai.",
-  "APP-PRIYA": "Priya ji, aapka score 85 hai — ye STRONG tier hai. Aapka business bahut disciplined hai: GST filing 95% hai, zero bounces, closing balance ₹92K strong hai, aur payroll 8% badh raha hai. Monthly income ₹3.85L stable hai. Ye bilkul best credit profile hai — sidha approval eligible hai.",
-  "APP-VIKRAM": "Vikram sahab, aapka score 45 hai — ye WATCH tier hai. Aapki income bahut unstable hai (65% volatility), 90 din mein 4 din negative balance, aur 3 bounces hain. GST filing 45% ho gayi hai, aur turnover bhi 3% ghat raha hai. Transaction count achha hai bas. Human officer review zaroori hai. Collateral maangna chahiye, ya loan ₹3L tak limit karna chahiye.",
-  "APP-ANITA": "Anita ji, aapka score 28 hai — ye HIGH RISK tier hai. Aapka profile bahut stressed hai: 90 din mein 5 bounces, 7 din negative balance, aur EMI-to-income 55% hai jo bahut zyada hai. Income volatility 78% hai, aur GST compliance 25% tak ghat gayi hai. Aap over-leveraged hain. Human officer review zaroori hai. Loan decline karna chahiye, ya bahut kam amount aur strict collateral ke saath.",
-  "APP-SURESH": "Suresh ji, aapka score 61 hai — ye ADEQUATE tier hai. Aapka electronics retail business solid hai, monthly income ₹2.15L hai, aur GST compliance 80% achhi hai. Closing balance ₹42K hai jo safety buffer hai. Main risk volatility 45% hai — seasonal demand lagta hai. Ek bounce acceptable hai. Sidha approval recommended hai, par credit officer ko seasonal pattern monitor karna chahiye.",
-};
-
 export const ENGLISH_NARRATIVES: Record<string, string> = {
   "APP-RAMESH": "Ramesh's Financial Health Score is 72 (ADEQUATE). His monthly income is stable at ₹1.42L with consistent payment timing. GST filing regularity at 60% is a moderate strength, though there is room for improvement. One bounce in the last 90 days is a minor risk factor. Overall, his cash-flow profile supports straight-through approval for working-capital credit.",
   "APP-PRIYA": "Priya's Financial Health Score is 85 (STRONG). Her business demonstrates exceptional financial discipline: 95% GST filing regularity, zero bounces, strong closing balance buffer at ₹92K, and a growing payroll trend of 8% YoY. Monthly inflow of ₹3.85L is highly stable. This is a textbook creditworthy profile with straight-through approval eligibility.",
-  "APP-VIKRAM": "Vikram's Financial Health Score is 45 (WATCH). His income is highly volatile at 65% coefficient, with 4 days of negative balance and 3 bounces in the last 90 days. GST filing has dropped to 45% and turnover declined 3% YoY. Transaction velocity is the only positive signal. Enhanced human review is required before any credit decision.",
-  "APP-ANITA": "Anita's Financial Health Score is 28 (HIGH RISK). This profile exhibits severe credit stress: 5 bounces in 90 days, 7 days of negative balance, and an EMI-to-income ratio of 55% which is critically high. Income volatility is extreme at 78%, and GST compliance has deteriorated to 25%. This applicant is currently over-leveraged and requires immediate human officer review.",
+  "APP-MOHAMMED": "Mohammed's Financial Health Score is 45 (WATCH). His income is highly volatile at 65% coefficient, with 4 days of negative balance and 3 bounces in the last 90 days. GST filing has dropped to 45% and turnover declined 3% YoY. Transaction velocity is the only positive signal. Enhanced human review is required before any credit decision.",
+  "APP-LAKSHMI": "Lakshmi's Financial Health Score is 28 (HIGH RISK). This profile exhibits severe credit stress: 5 bounces in 90 days, 7 days of negative balance, and an EMI-to-income ratio of 55% which is critically high. Income volatility is extreme at 78%, and GST compliance has deteriorated to 25%. This applicant is currently over-leveraged and requires immediate human officer review.",
   "APP-SURESH": "Suresh's Financial Health Score is 61 (ADEQUATE). He runs a solid electronics retail business with ₹2.15L monthly inflow and good GST compliance at 80%. Closing balance of ₹42K provides a decent buffer. The main risk factor is income volatility at 45%, which suggests seasonal demand fluctuations. One bounce is within acceptable limits. Straight-through approval is recommended.",
 };
 
-export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onLanguageChange, isLoading }: ArthMitraPlayerProps) {
+export const HINDI_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "रमेश जी, आपका फाइनेंशियल हेल्थ स्कोर 72 है — यह ADEQUATE श्रेणी में आता है। आपकी मासिक आय ₹1.42 लाख पर स्थिर है और भुगतान समय पर होता है। जीएसटी फाइलिंग 60% है, जो ठीक है। पिछले 90 दिनों में केवल 1 चेक बाउंस हुआ है। कुल मिलाकर आपका कैश-फ्लो वर्किंग कैपिटल लोन के सीधे अप्रूवल के लिए उपयुक्त है।",
+  "APP-PRIYA": "प्रिया जी, आपका फाइनेंशियल हेल्थ स्कोर 85 है — यह STRONG श्रेणी है। आपका व्यवसाय बेहतरीन वित्तीय अनुशासन दिखाता है: 95% जीएसटी फाइलिंग, जीरो बाउंस, ₹92 हज़ार का मजबूत बैंक बैलेंस, और पेरोल में 8% की वृद्धि। ₹3.85 लाख की मासिक आय बहुत स्थिर है। आप तुरंत लोन अप्रूवल के लिए योग्य हैं।",
+  "APP-MOHAMMED": "मोहम्मद साहब, आपका फाइनेंशियल हेल्थ स्कोर 45 है — यह WATCH श्रेणी है। आपकी आय में 65% उतार-चढ़ाव है, पिछले 90 दिनों में 4 दिन नेगेटिव बैलेंस और 3 चेक बाउंस हुए हैं। जीएसटी फाइलिंग घटकर 45% रह गई है। लेन-देन की संख्या अच्छी है, लेकिन क्रेडिट फैसले से पहले अधिकारी द्वारा समीक्षा जरूरी है।",
+  "APP-LAKSHMI": "लक्ष्मी जी, आपका फाइनेंशियल हेल्थ स्कोर 28 है — यह HIGH RISK श्रेणी है। आपके खाते में भारी तनाव है: 90 दिनों में 5 बाउंस, 7 दिन नेगेटिव बैलेंस, और ईएमआई-टू-आय अनुपात 55% है जो बहुत अधिक है। आय में 78% अस्थिरता है और जीएसटी अनुपालन 25% पर आ गया है। इस समय लोन आवेदन पर विशेष समीक्षा आवश्यक है।",
+  "APP-SURESH": "सुरेश जी, आपका फाइनेंशियल हेल्थ स्कोर 61 है — यह ADEQUATE श्रेणी है। आपका इलेक्ट्रॉनिक्स रिटेल व्यवसाय अच्छा चल रहा है, मासिक आय ₹2.15 लाख है और जीएसटी अनुपालन 80% है। ₹42 हज़ार का क्लोजिंग बैलेंस एक अच्छा सुरक्षा कवच है। 1 बाउंस स्वीकार्य सीमा में है। सीधे लोन अप्रूवल की सिफारिश की जाती है।",
+};
+
+export const TAMIL_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "ரமேஷ் அவர்களே, உங்களின் நிதி ஆரோக்கிய மதிப்பெண் 72 — இது ADEQUATE பிரிவில் உள்ளது. உங்களின் மாதாந்திர வருமானம் ₹1.42 லட்சமாக சீராக உள்ளது. ஜிஎஸ்டி தாக்கல் 60% ஆக உள்ளது. கடந்த 90 நாட்களில் 1 காசோலை மட்டுமே பவுன்ஸ் ஆகியுள்ளது. உங்களின் பணப்புழக்கம் நேரடி கடன் ஒப்புதலுக்கு தகுதியானதாக உள்ளது.",
+  "APP-PRIYA": "பிரியா அவர்களே, உங்களின் நிதி ஆரோக்கிய மதிப்பெண் 85 — இது STRONG பிரிவில் உள்ளது. உங்களின் வணிகம் மிகச் சிறந்த நிதி ஒழுக்கத்தைக் கொண்டுள்ளது: 95% ஜிஎஸ்டி தாக்கல், பூஜ்ஜிய பவுன்ஸ், மற்றும் ₹92 ஆயிரம் வலுவான வங்கி இருப்பு. மாதாந்திர வருமானம் ₹3.85 லட்சம் மிகவும் சீராக உள்ளது. நீங்கள் நேரடி கடன் ஒப்புதலுக்கு தகுதியானவர்.",
+  "APP-MOHAMMED": "முகமது அவர்களே, உங்களின் நிதி ஆரோக்கிய மதிப்பெண் 45 — இது WATCH பிரிவில் உள்ளது. உங்களின் வருமானத்தில் 65% ஏற்ற இறக்கம் உள்ளது, கடந்த 90 நாட்களில் 4 நாட்கள் எதிர்மறை இருப்பு மற்றும் 3 பவுன்ஸ்கள் உள்ளன. ஜிஎஸ்டி தாக்கல் 45% ஆக குறைந்துள்ளது. கடன் முடிவுக்கு முன் அதிகாரி ஆய்வு அவசியம்.",
+  "APP-LAKSHMI": "லட்சுமி அவர்களே, உங்களின் நிதி ஆரோக்கிய மதிப்பெண் 28 — இது HIGH RISK பிரிவில் உள்ளது. உங்களின் கணக்கில் கடுமையான அழுத்தம் உள்ளது: 90 நாட்களில் 5 பவுன்ஸ்கள், 7 நாட்கள் எதிர்மறை இருப்பு, மற்றும் EMI விகிதம் 55% ஆக மிக அதிகமாக உள்ளது. இந்த நேரத்தில் கடன் விண்ணப்பத்திற்கு சிறப்பு ஆய்வு தேவை.",
+  "APP-SURESH": "சுரேஷ் அவர்களே, உங்களின் நிதி ஆரோக்கிய மதிப்பெண் 61 — இது ADEQUATE பிரிவில் உள்ளது. உங்களின் எலக்ட்ரானிக்ஸ் வணிகம் நன்றாக உள்ளது, மாதாந்திர வருமானம் ₹2.15 லட்சம் மற்றும் ஜிஎஸ்டி தாக்கல் 80% ஆக உள்ளது. ₹42 ஆயிரம் இருப்பு நல்ல பாதுகாப்பாக உள்ளது. நேரடி கடன் ஒப்புதல் பரிந்துரைக்கப்படுகிறது.",
+};
+
+export const TELUGU_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "రమేష్ గారు, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ 72 — ఇది ADEQUATE విభాగంలో ఉంది. మీ నెలవారీ ఆదాయం ₹1.42 లక్షలతో నిలకడగా ఉంది. జీఎస్టీ ఫైలింగ్ 60% గా ఉంది. గత 90 రోజుల్లో కేవలం 1 చెక్ మాత్రమే బౌన్స్ అయింది. మీ వ్యాపార నగదు ప్రవాహం వర్కింగ్ క్యాపిటల్ లోన్ తక్షణ ఆమోదానికి అనుకూలంగా ఉంది.",
+  "APP-PRIYA": "ప్రియా గారు, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ 85 — ఇది STRONG విభాగంలో ఉంది. మీ వ్యాపారం అద్భుతమైన ఆర్థిక క్రమశిక్షణను చూపిస్తుంది: 95% జీఎస్టీ ఫైలింగ్, సున్నా బౌన్సులు, మరియు ₹92 వేల బలమైన బ్యాంక్ నిల్వ. నెలవారీ ఆదాయం ₹3.85 లక్షలు చాలా స్థిరంగా ఉంది. మీరు తక్షణ రుణం పొందడానికి అర్హులు.",
+  "APP-MOHAMMED": "మొహమ్మద్ గారు, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ 45 — ఇది WATCH విభాగంలో ఉంది. మీ ఆదాయంలో 65% హెచ్చుతగ్గులు ఉన్నాయి, గత 90 రోజుల్లో 4 రోజులు నెగటివ్ బ్యాలెన్స్ మరియు 3 బౌన్సులు ఉన్నాయి. జీఎస్టీ ఫైలింగ్ 45% కి తగ్గింది. లోన్ నిర్ణయానికి ముందు మానవ అధికారి పరిశీలన అవసరం.",
+  "APP-LAKSHMI": "లక్ష్మి గారు, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ 28 — ఇది HIGH RISK విభాగంలో ఉంది. మీ ఖాతాలో తీవ్రమైన ఒత్తిడి ఉంది: 90 రోజుల్లో 5 బౌన్సులు, 7 రోజులు నెగటివ్ బ్యాలెన్స్, మరియు ఈఎంఐ నిష్పత్తి 55% గా చాలా ఎక్కువగా ఉంది. లోన్ దరఖాస్తుకు ప్రత్యేక పరిశీలన అవసరం.",
+  "APP-SURESH": "సురేష్ గారు, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ 61 — ఇది ADEQUATE విభాగంలో ఉంది. మీ ఎలక్ట్రానిక్స్ వ్యాపారం బాగా నడుస్తోంది, నెలవారీ ఆదాయం ₹2.15 లక్షలు మరియు జీఎస్టీ ఫైలింగ్ 80% గా ఉంది. ₹42 వేల బ్యాలెన్స్ మంచి భద్రతను ఇస్తుంది. తక్షణ రుణం ఆమోదించడానికి సిఫార్సు చేయబడింది.",
+};
+
+export const MARATHI_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "रमेश जी, तुमचा फायनान्शियल हेल्थ स्कोर 72 आहे — हा ADEQUATE श्रेणीत येतो. तुमचे मासिक उत्पन्न ₹1.42 लाख स्थिर आहे आणि पेमेंट वेळेवर होतात. जीएसटी फायलिंग 60% आहे. गेल्या 90 दिवसांत फक्त 1 चेक बाऊन्स झाला आहे. तुमचा रोख प्रवाह वर्किंग कॅपिटल कर्जाच्या थेट मंजुरीसाठी योग्य आहे.",
+  "APP-PRIYA": "प्रिया जी, तुमचा फायनान्शियल हेल्थ स्कोर 85 आहे — ही STRONG श्रेणी आहे. तुमचा व्यवसाय उत्कृष्ट आर्थिक शिस्त दाखवतो: 95% जीएसटी फायलिंग, शून्य बाऊन्स, आणि ₹92 हजारांची मजबूत बँक शिल्लक. मासिक उत्पन्न ₹3.85 लाख अत्यंत स्थिर आहे. तुम्ही थेट कर्ज मंजुरीसाठी पूर्णपणे पात्र आहात.",
+  "APP-MOHAMMED": "मोहम्मद साहेब, तुमचा फायनान्शियल हेल्थ स्कोर 45 आहे — ही WATCH श्रेणी आहे. तुमच्या उत्पन्नात 65% चढ-उतार आहेत, गेल्या 90 दिवसांत 4 दिवस निगेटिव्ह बॅलन्स आणि 3 चेक बाऊन्स झाले आहेत. जीएसटी फायलिंग 45% वर आले आहे. कर्ज मंजुरीपूर्वी अधिकारी स्तरावर तपासणी आवश्यक आहे.",
+  "APP-LAKSHMI": "लक्ष्मी जी, तुमचा फायनान्शियल हेल्थ स्कोर 28 आहे — ही HIGH RISK श्रेणी आहे. तुमच्या खात्यात तीव्र आर्थिक ताण आहे: 90 दिवसांत 5 बाऊन्स, 7 दिवस निगेटिव्ह बॅलन्स, आणि ईएमआय गुणोत्तर 55% आहे जे खूप जास्त आहे. सध्या कर्जाच्या अर्जावर विशेष तपासणी आवश्यक आहे.",
+  "APP-SURESH": "सुरेश जी, तुमचा फायनान्शियल हेल्थ स्कोर 61 आहे — ही ADEQUATE श्रेणी आहे. तुमचा इलेक्ट्रॉनिक्स व्यवसाय चांगला चालला आहे, मासिक उत्पन्न ₹2.15 लाख आणि जीएसटी फायलिंग 80% आहे. ₹42 हजारांची शिल्लक चांगली सुरक्षा देते. थेट कर्ज मंजुरीची शिफारस केली जाते.",
+};
+
+export const GUJARATI_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "રમેશભાઈ, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર 72 છે — આ ADEQUATE શ્રેણીમાં છે. તમારી માસિક આવક ₹1.42 લાખ સ્થિર છે અને પેમેન્ટ સમયસર આવે છે. જીએસટી ફાઈલિંગ 60% છે. છેલ્લા 90 દિવસમાં માત્ર 1 ચેક બાઉન્સ થયો છે. તમારો કેશ-ફ્લો વર્કિંગ કેપિટલ લોનની સીધી મંજૂરી માટે યોગ્ય છે.",
+  "APP-PRIYA": "પ્રિયાબેન, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર 85 છે — આ STRONG શ્રેણી છે. તમારો વ્યવસાય ઉત્તમ નાણાકીય શિસ્ત દર્શાવે છે: 95% જીએસટી ફાઈલિંગ, શૂન્ય બાઉન્સ, અને ₹92 હજારનું મજબૂત બેંક બેલેન્સ. માસિક આવક ₹3.85 લાખ ખૂબ જ સ્થિર છે. તમે તાત્કાલિક લોન મંજૂરી માટે પાત્ર છો.",
+  "APP-MOHAMMED": "મોહમ્મદભાઈ, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર 45 છે — આ WATCH શ્રેણી છે. તમારી આવકમાં 65% વધ-ઘટ છે, છેલ્લા 90 દિવસમાં 4 દિવસ નેગેટિવ બેલેન્સ અને 3 ચેક બાઉન્સ થયા છે. જીએસટી ફાઈલિંગ ઘટીને 45% થઈ ગયું છે. લોન નિર્ણય પહેલાં માનવ અધિકારીની સમીક્ષા જરૂરી છે.",
+  "APP-LAKSHMI": "લક્ષ્મીબેન, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર 28 છે — આ HIGH RISK શ્રેણી છે. તમારા ખાતામાં ભારે નાણાકીય તણાવ છે: 90 દિવસમાં 5 બાઉન્સ, 7 દિવસ નેગેટિવ બેલેન્સ, અને ઈએમઆઈ ગુણોત્તર 55% છે જે ખૂબ વધારે છે. લોન અરજી પર માનવ સમીક્ષા જરૂરી છે.",
+  "APP-SURESH": "સુરેશભાઈ, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર 61 છે — આ ADEQUATE શ્રેણી છે. તમારો ઈલેક્ટ્રોનિક્સ વ્યવસાય સારો ચાલી રહ્યો છે, માસિક આવક ₹2.15 લાખ અને જીએસટી ફાઈલિંગ 80% છે. ₹42 હજારનું બેલેન્સ સારી સલામતી આપે છે. સીધી લોન મંજૂરીની ભલામણ કરવામાં આવે છે.",
+};
+
+export const KANNADA_NARRATIVES: Record<string, string> = {
+  "APP-RAMESH": "ರಮೇಶ್ ಅವರೇ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ 72 ಆಗಿದೆ — ಇದು ADEQUATE ವರ್ಗದಲ್ಲಿದೆ. ನಿಮ್ಮ ಮಾಸಿಕ ಆದಾಯ ₹1.42 ಲಕ್ಷ ಸ್ಥಿರವಾಗಿದೆ. ಜಿಎಸ್‌ಟಿ ಫೈಲಿಂಗ್ 60% ಆಗಿದೆ. ಕಳೆದ 90 ದಿನಗಳಲ್ಲಿ ಕೇವಲ 1 ಚೆಕ್ ಬೌನ್ಸ್ ಆಗಿದೆ. ನಿಮ್ಮ ನಗದು ಹರಿವು ವರ್ಕಿಂಗ್ ಕ್ಯಾಪಿಟಲ್ ಸಾಲದ ನೇರ ಅನುಮೋದನೆಗೆ ಸೂಕ್ತವಾಗಿದೆ.",
+  "APP-PRIYA": "ಪ್ರಿಯಾ ಅವರೇ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ 85 ಆಗಿದೆ — ಇದು STRONG ವರ್ಗದಲ್ಲಿದೆ. ನಿಮ್ಮ ವ್ಯಾಪಾರವು ಅತ್ಯುತ್ತಮ ಹಣಕಾಸಿನ ಶಿಸ್ತನ್ನು ಹೊಂದಿದೆ: 95% ಜಿಎಸ್‌ಟಿ ಫೈಲಿಂಗ್, ಶೂನ್ಯ ಬೌನ್ಸ್, ಮತ್ತು ₹92 ಸಾವಿರದ ಬಲವಾದ ಬ್ಯಾಂಕ್ ಬ್ಯಾಲೆನ್ಸ್. ಮಾಸಿಕ ಆದಾಯ ₹3.85 ಲಕ್ಷ ಅತ್ಯಂತ ಸ್ಥಿರವಾಗಿದೆ. ನೀವು ನೇರ ಸಾಲ ಅನುಮೋದನೆಗೆ ಅರ್ಹರಾಗಿದ್ದೀರಿ.",
+  "APP-MOHAMMED": "ಮೊಹಮ್ಮದ್ ಅವರೇ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ 45 ಆಗಿದೆ — ಇದು WATCH ವರ್ಗದಲ್ಲಿದೆ. ನಿಮ್ಮ ಆದಾಯದಲ್ಲಿ 65% ಏರಿಳಿತವಿದೆ, ಕಳೆದ 90 ದಿನಗಳಲ್ಲಿ 4 ದಿನ ನೆಗೆಟಿವ್ ಬ್ಯಾಲೆನ್ಸ್ ಮತ್ತು 3 ಬೌನ್ಸ್‌ಗಳಾಗಿವೆ. ಜಿಎಸ್‌ಟಿ ಫೈಲಿಂಗ್ 45% ಗೆ ಇಳಿದಿದೆ. ಸಾಲದ ನಿರ್ಧಾರಕ್ಕೆ ಮೊದಲು ಅಧಿಕಾರಿಗಳ ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ.",
+  "APP-LAKSHMI": "ಲಕ್ಷ್ಮಿ ಅವರೇ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ 28 ಆಗಿದೆ — ಇದು HIGH RISK ವರ್ಗದಲ್ಲಿದೆ. ನಿಮ್ಮ ಖಾತೆಯಲ್ಲಿ ತೀವ್ರ ಒತ್ತಡವಿದೆ: 90 ದಿನಗಳಲ್ಲಿ 5 ಬೌನ್ಸ್‌ಗಳು, 7 ದಿನ ನೆಗೆಟಿವ್ ಬ್ಯಾಲೆನ್ಸ್, ಮತ್ತು ಇಎಂಐ ಅನುಪಾತ 55% ರಷ್ಟಿದೆ. ಸಾಲದ ಅರ್ಜಿಗೆ ವಿಶೇಷ ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ.",
+  "APP-SURESH": "ಸುರೇಶ್ ಅವರೇ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ 61 ಆಗಿದೆ — ಇದು ADEQUATE ವರ್ಗದಲ್ಲಿದೆ. ನಿಮ್ಮ ಎಲೆಕ್ಟ್ರಾನಿಕ್ಸ್ ವ್ಯಾಪಾರ ಚೆನ್ನಾಗಿ ನಡೆಯುತ್ತಿದೆ, ಮಾಸಿಕ ಆದಾಯ ₹2.15 ಲಕ್ಷ ಮತ್ತು ಜಿಎಸ್‌ಟಿ ಫೈಲಿಂಗ್ 80% ಆಗಿದೆ. ₹42 ಸಾವಿರದ ಬ್ಯಾಲೆನ್ಸ್ ಉತ್ತಮ ಭದ್ರತೆ ನೀಡುತ್ತದೆ. ನೇರ ಸಾಲ ಅನುಮೋದನೆಗೆ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.",
+};
+
+export const ALL_NARRATIVES: Record<string, Record<string, string>> = {
+  hi: HINDI_NARRATIVES,
+  en: ENGLISH_NARRATIVES,
+  ta: TAMIL_NARRATIVES,
+  te: TELUGU_NARRATIVES,
+  mr: MARATHI_NARRATIVES,
+  gu: GUJARATI_NARRATIVES,
+  kn: KANNADA_NARRATIVES,
+};
+
+export function getVernacularText(personaId?: string, langCode: string = 'hi', fallbackText: string = ''): string {
+  const dict = ALL_NARRATIVES[langCode] || HINDI_NARRATIVES;
+  if (personaId && dict[personaId]) {
+    return dict[personaId];
+  }
+  // If custom/dynamic persona and non-English, provide intelligent translation summary
+  if (langCode === 'hi') return `नमस्ते, आपका फाइनेंशियल हेल्थ स्कोर विश्लेषित किया गया है। आपके अकाउंट एग्रीगेटर टेलीमेट्री और बैंक कैश-फ्लो के आधार पर एआई स्कोर तैयार है।`;
+  if (langCode === 'ta') return `வணக்கம், உங்களின் நிதி ஆரோக்கிய மதிப்பெண் பகுப்பாய்வு செய்யப்பட்டுள்ளது. உங்களின் பணப்புழக்கத்தின் அடிப்படையில் AI கடன் அறிக்கை தயாராக உள்ளது.`;
+  if (langCode === 'te') return `నమస్తే, మీ ఫైనాన్షియల్ హెల్త్ స్కోర్ విశ్లేషించబడింది. మీ బ్యాంక్ నగదు ప్రవాహం ఆధారంగా AI లోన్ నివేదిక సిద్ధంగా ఉంది.`;
+  if (langCode === 'mr') return `नमस्कार, तुमचा फायनान्शियल हेल्थ स्कोर विश्लेषित केला आहे. तुमच्या बँक रोख प्रवाहावर आधारित AI अहवाल तयार आहे.`;
+  if (langCode === 'gu') return `નમસ્તે, તમારો ફાઈનાન્શિયલ હેલ્થ સ્કોર વિશ્લેષિત કરવામાં આવ્યો છે. તમારા કેશ-ફ્લોના આધારે AI રિપોર્ટ તૈયાર છે.`;
+  if (langCode === 'kn') return `ನಮಸ್ಕಾರ, ನಿಮ್ಮ ಫೈನಾನ್ಷಿಯಲ್ ಹೆಲ್ತ್ ಸ್ಕೋರ್ ವಿಶ್ಲೇಷಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ನಗದು ಹರಿವಿನ ಆಧಾರದ ಮೇಲೆ AI ವರದಿ ಸಿದ್ಧವಾಗಿದೆ.`;
+  return fallbackText || dict["APP-RAMESH"] || '';
+}
+
+export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onLanguageChange, isLoading, personaId }: ArthMitraPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [fallback, setFallback] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
 
-  useEffect(() => {
-    if (audioUrl && audioRef.current) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {
-        setFallback(true);
-        useBrowserTTS();
-      });
+  const currentLangObj = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
+  const activeVernacularText = getVernacularText(personaId, language, narrativeText);
+
+  // Guarantee stopping all speech and audio when triggered
+  const stopAllAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-  }, [audioUrl]);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+  };
 
-  const useBrowserTTS = () => {
-    if (window.speechSynthesis) {
-      const utterance = new SpeechSynthesisUtterance(narrativeText);
-      utterance.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+  // Stop audio whenever unmounting or language switches
+  useEffect(() => {
+    stopAllAudio();
+    return () => stopAllAudio();
+  }, [language, personaId]);
+
+  const speakVernacularTTS = (textToSpeak: string, langCode: string) => {
+    stopAllAudio();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
       utterance.onstart = () => setIsPlaying(true);
       utterance.onend = () => setIsPlaying(false);
-      window.speechSynthesis.cancel();
+      utterance.onerror = () => setIsPlaying(false);
       window.speechSynthesis.speak(utterance);
-      setFallback(true);
+      setUsingFallback(true);
     }
   };
 
   const togglePlay = () => {
-    if (audioUrl && audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => useBrowserTTS());
-      }
+    if (isPlaying) {
+      stopAllAudio();
+      return;
+    }
+
+    // If English and MP3 audioUrl is available, play audio directly
+    if (language === 'en' && audioUrl && audioRef.current) {
+      audioRef.current.src = audioUrl;
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        setUsingFallback(false);
+      }).catch(() => {
+        speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
+      });
     } else {
-      useBrowserTTS();
+      // For Hindi, Tamil, Telugu, Marathi, Gujarati, Kannada (or when audioUrl is missing),
+      // speak the authentic vernacular text directly with matching voice code!
+      speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
     }
   };
 
-  const currentLang = LANGUAGES.find((l) => l.code === language) || LANGUAGES[1];
-
   return (
-    <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-page)]/50">
+    <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)]/70 space-y-4 font-sans">
       <div className="flex items-center gap-4">
-        {/* Play button */}
+        {/* Play/Stop button */}
         <button
+          type="button"
           onClick={togglePlay}
           disabled={isLoading}
-          className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--accent-emerald)]/15 text-[var(--accent-emerald)] hover:bg-[var(--accent-emerald)]/25 transition-all border border-[var(--accent-emerald)]/40 shrink-0"
+          className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all border shrink-0 cursor-pointer shadow-sm ${
+            isPlaying
+              ? 'bg-[#F43F5E]/20 text-[#F43F5E] border-[#F43F5E]/50 hover:bg-[#F43F5E]/30'
+              : 'bg-[var(--accent-emerald)]/15 text-[var(--accent-emerald)] hover:bg-[var(--accent-emerald)]/25 border-[var(--accent-emerald)]/40'
+          }`}
+          title={isPlaying ? "Stop Voice Playback" : "Listen in Selected Language"}
         >
           {isLoading ? (
             <motion.div className="w-4 h-4 border-2 border-[var(--accent-emerald)] border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
@@ -99,34 +191,47 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         </button>
 
         {/* Waveform */}
-        <div className="flex-1 flex items-center gap-[3px] h-10 overflow-hidden">
-          {Array.from({ length: 16 }).map((_, i) => (
+        <div className="flex-1 flex items-center gap-[3px] h-10 overflow-hidden px-2">
+          {Array.from({ length: 20 }).map((_, i) => (
             <motion.div
               key={i}
-              className="w-1 rounded-full bg-[var(--accent-emerald)]/70"
+              className={`w-1 rounded-full ${isPlaying ? 'bg-[var(--accent-emerald)]' : 'bg-[var(--border-subtle)]'}`}
               animate={
                 isPlaying
-                  ? { height: [6, 28 + Math.random() * 12, 6] }
+                  ? { height: [6, 24 + Math.random() * 16, 6] }
                   : { height: 6 }
               }
               transition={{
-                duration: 0.4 + Math.random() * 0.3,
+                duration: 0.35 + Math.random() * 0.25,
                 repeat: isPlaying ? Infinity : 0,
                 repeatType: 'reverse',
-                delay: i * 0.04,
+                delay: i * 0.03,
               }}
             />
           ))}
         </div>
 
+        {/* Stop Button (explicit quick stop) */}
+        {isPlaying && (
+          <button
+            type="button"
+            onClick={stopAllAudio}
+            className="flex items-center justify-center w-9 h-9 rounded-lg border border-[#F43F5E]/40 bg-[#F43F5E]/10 text-[#F43F5E] hover:bg-[#F43F5E]/20 transition-all text-xs"
+            title="Stop Audio"
+          >
+            <VolumeX className="h-4 w-4" />
+          </button>
+        )}
+
         {/* Language selector */}
         <div className="relative shrink-0">
           <button
+            type="button"
             onClick={() => setShowLangDropdown(!showLangDropdown)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-xs font-mono font-bold uppercase text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-all"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-xs font-mono font-bold uppercase text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-all shadow-sm cursor-pointer"
           >
             <Globe className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
-            {currentLang.label}
+            {currentLangObj.label}
           </button>
           <AnimatePresence>
             {showLangDropdown && (
@@ -134,16 +239,18 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute right-0 top-full mt-1 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] shadow-xl z-50 min-w-[120px]"
+                className="absolute right-0 top-full mt-1 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl z-50 min-w-[170px] max-h-64 overflow-y-auto"
               >
                 {LANGUAGES.map((l) => (
                   <button
                     key={l.code}
+                    type="button"
                     onClick={() => {
+                      stopAllAudio();
                       onLanguageChange(l.code);
                       setShowLangDropdown(false);
                     }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${l.code === language ? 'text-[var(--accent-emerald)] font-bold bg-[var(--border-subtle)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`block w-full text-left px-4 py-2 text-xs font-mono transition-colors cursor-pointer ${l.code === language ? 'text-[var(--accent-emerald)] font-bold bg-[var(--border-subtle)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'}`}
                   >
                     {l.label}
                   </button>
@@ -154,14 +261,25 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         </div>
       </div>
 
-      {fallback && (
-        <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--accent-amber)] border-t border-[var(--border-subtle)] pt-2.5">
-          <Volume2 className="h-3 w-3" />
-          Native Speech API Fallback Active
+      {/* Vernacular Transcript Display */}
+      <div className="pt-3 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--accent-gold)] font-bold flex items-center gap-1.5">
+            <Globe className="h-3 w-3" /> Vernacular Transcript ({currentLangObj.label})
+          </span>
+          {usingFallback && (
+            <span className="text-[10px] font-mono text-[#10B981] flex items-center gap-1">
+              <Volume2 className="h-3 w-3" /> Native Indic Speech Engine
+            </span>
+          )}
         </div>
-      )}
+        <div className="p-3.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs sm:text-sm text-[var(--text-primary)] font-serif leading-relaxed">
+          {activeVernacularText}
+        </div>
+      </div>
 
       <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
+

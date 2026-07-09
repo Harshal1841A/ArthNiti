@@ -16,11 +16,14 @@ const TIER_COLORS: Record<string, string> = {
   HIGH_RISK: '#F43F5E',
 };
 
+// BUG-13 FIX: These IDs must match exactly what backend/data/demo_personas.py seeds.
+// APP-VIKRAM and APP-ANITA do not exist in the backend — they caused 404 on click.
+// Correct IDs are APP-MOHAMMED (WATCH) and APP-LAKSHMI (HIGH_RISK).
 const DEMO_PERSONAS = [
   { id: 'APP-RAMESH', name: 'Ramesh General Store', city: 'Indore', industry: 'Kirana', score: 72, tier: 'ADEQUATE', isNTC: true },
   { id: 'APP-PRIYA', name: 'Priya Textiles', city: 'Surat', industry: 'Textile', score: 85, tier: 'STRONG', isNTC: false },
-  { id: 'APP-VIKRAM', name: 'Vikram Auto Parts', city: 'Hyderabad', industry: 'Auto Parts', score: 45, tier: 'WATCH', isNTC: false },
-  { id: 'APP-ANITA', name: 'Anita Catering', city: 'Chennai', industry: 'Food', score: 28, tier: 'HIGH_RISK', isNTC: true },
+  { id: 'APP-MOHAMMED', name: 'Mohammed Enterprises', city: 'Hyderabad', industry: 'Trading', score: 45, tier: 'WATCH', isNTC: false },
+  { id: 'APP-LAKSHMI', name: 'Lakshmi Dairy Products', city: 'Chennai', industry: 'Food / Dairy', score: 28, tier: 'HIGH_RISK', isNTC: true },
   { id: 'APP-SURESH', name: 'Suresh Electronics', city: 'Delhi', industry: 'Electronics', score: 61, tier: 'ADEQUATE', isNTC: true },
 ];
 
@@ -67,12 +70,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   void error;
-  const [animatingAgent, setAnimatingAgent] = useState(false);
+  const [animatingAgent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     async function load() {
       try {
+        // Ensure demo personas are seeded before reading stats.
+        // This is a no-op if already seeded (idempotent endpoint).
+        // Silently ignored if DEMO_MODE is off on the server.
+        await api.post('/v1/demo/seed').catch(() => null);
+
         const [cov, allScores, allApplicants] = await Promise.all([
           api.get('/v1/coverage-stats').then(r => r.data).catch(() => ({ total_applicants: 0, coverage_improvement_pct: 0 })),
           api.get('/v1/score').then(r => r.data).catch(() => []),
@@ -97,10 +105,10 @@ export default function Dashboard() {
   };
 
   const handleLaunchDemo = () => {
-    setAnimatingAgent(true);
-    setTimeout(() => {
-      navigate('/applicants/APP-RAMESH?demo=true');
-    }, 4000);
+    // Navigate to the demo sandbox page — lets the user pick a persona
+    // instead of silently full-page-navigating after a 4-second delay
+    // (which looked like the screen was being "maximized").
+    navigate('/demo');
   };
 
   if (loading) {

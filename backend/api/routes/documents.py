@@ -10,7 +10,6 @@ SECURITY FIXES (v1.4):
 """
 
 import json
-import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select
@@ -43,7 +42,13 @@ async def _process_document(upload_id: str, applicant_id: str, file_bytes: bytes
     from backend.database.models import AdapterFetchLog
 
     llm_client = LLMClient()
-    upload_file = UploadFile(filename=filename, file=BytesIO(file_bytes))
+    # BUG-09 FIX: Reset the BytesIO cursor to the start before passing to
+    # parse_document_to_features. The upload route already read the bytes once
+    # into file_bytes; wrapping in BytesIO leaves the cursor at position 0
+    # for the first read, but we must be explicit about it.
+    bio = BytesIO(file_bytes)
+    bio.seek(0)
+    upload_file = UploadFile(filename=filename, file=bio)
     upload_file.headers = {"content-type": content_type}
 
     try:
@@ -120,15 +125,17 @@ async def upload_document(
     if ext == ".pdf" and not file_bytes.startswith(b"%PDF"):
         raise HTTPException(status_code=400, detail="File extension claims PDF but content does not match.")
 
-    upload_id = f"DOC-{uuid.uuid4().hex[:8].upper()}"
+    # BUG-19 FIX: Use model's own default (generate_id) instead of a hand-rolled
+    # alternative format. Previously two different ID formats existed for the same entity.
     upload = DocumentUpload(
-        id=upload_id,
         applicant_id=applicant_id,
         filename=file.filename,
         content_type=file.content_type or "application/octet-stream",
     )
     db.add(upload)
     await db.commit()
+    await db.refresh(upload)
+    upload_id = upload.id
 
     background_tasks.add_task(
         _process_document,

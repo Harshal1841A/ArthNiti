@@ -11,12 +11,14 @@ import {
 } from 'lucide-react';
 import MultiAgentViz from '@/components/MultiAgentViz';
 
+// BUG-13 FIX: All IDs must match backend demo_personas.py seeds.
+// demo-ramesh / demo-priya / demo-suresh are not real IDs — they would 404.
 const PERSONAS = [
-  { id: 'demo-ramesh', name: 'Ramesh', business: 'Ramesh Kirana Store', city: 'Jaipur', industry: 'Retail', tier: 'STRONG', score: 82, desc: 'High GST compliance, consistent inflows, low EMI ratio' },
-  { id: 'demo-priya', name: 'Priya', business: 'Priya Textiles', city: 'Surat', industry: 'Manufacturing', tier: 'ADEQUATE', score: 64, desc: 'Moderate volatility, good balance, occasional bounces' },
-  { id: 'APP-VIKRAM', name: 'Vikram', business: 'Vikram Autos', city: 'Hyderabad', industry: 'Automotive', tier: 'WATCH', score: 42, desc: 'High bounce count, irregular GST, stressed cash flow' },
-  { id: 'APP-ANITA', name: 'Anita', business: 'Anita Catering', city: 'Chennai', industry: 'Food Services', tier: 'HIGH_RISK', score: 28, desc: 'Very low balance, high volatility, recent defaults' },
-  { id: 'demo-suresh', name: 'Suresh', business: 'Suresh Electronics', city: 'Pune', industry: 'Electronics', tier: 'STRONG', score: 78, desc: 'Stable business, digital payments, good credit history' },
+  { id: 'APP-RAMESH', name: 'Ramesh', business: 'Ramesh General Store', city: 'Indore', industry: 'Retail', tier: 'ADEQUATE', score: 72, desc: 'Stable inflows, good GST compliance, low bounce count' },
+  { id: 'APP-PRIYA', name: 'Priya', business: 'Priya Textiles', city: 'Surat', industry: 'Manufacturing', tier: 'STRONG', score: 85, desc: 'Exceptional GST filing, zero bounces, growing payroll' },
+  { id: 'APP-MOHAMMED', name: 'Mohammed', business: 'Mohammed Enterprises', city: 'Hyderabad', industry: 'Trading', tier: 'WATCH', score: 45, desc: 'High income volatility, irregular GST, stressed cash flow' },
+  { id: 'APP-LAKSHMI', name: 'Lakshmi', business: 'Lakshmi Dairy Products', city: 'Chennai', industry: 'Food Services', tier: 'HIGH_RISK', score: 28, desc: 'Very low balance, high volatility, critical EMI-to-income ratio' },
+  { id: 'APP-SURESH', name: 'Suresh', business: 'Suresh Electronics', city: 'Delhi', industry: 'Electronics', tier: 'ADEQUATE', score: 61, desc: 'Solid business, digital payments, moderate seasonal volatility' },
 ];
 
 const TIER_COLORS: Record<string, string> = {

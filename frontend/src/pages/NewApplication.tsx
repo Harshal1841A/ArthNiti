@@ -153,7 +153,19 @@ export default function NewApplication() {
                 </select>
               </div>
               <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-                <button type="button" onClick={() => setStep(2)} className="btn-gold">
+                {/* BUG-26 FIX: Validate businessName is non-empty before advancing to Step 2. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!businessName.trim()) {
+                      setError('Business name is required before proceeding.');
+                      return;
+                    }
+                    setError('');
+                    setStep(2);
+                  }}
+                  className="btn-gold"
+                >
                   Proceed to Data Topology →
                 </button>
               </div>
