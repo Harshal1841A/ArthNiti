@@ -1,0 +1,1 @@
+# Ensure data directory exists in git repository and Docker build context for Hugging Face Spaces
