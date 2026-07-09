@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from backend.api.deps import get_db
 from backend.api.models import ConsentStatusResponse, ScoreResponse, DocumentUploadStatusResponse
@@ -23,6 +23,10 @@ _settings = get_settings()
 # Do not "fix" this by scattering verify_api_key onto individual routes here
 # without also reconsidering whether DEMO_MODE should be disabled entirely
 # on the public deployment instead.
+
+
+
+
 
 # Realistic default synthetic features used when seeding a non-persona applicant
 _SYNTHETIC_DEFAULT_FEATURES = {
@@ -119,6 +123,12 @@ async def seed_demo_personas_db(db: AsyncSession) -> int:
     """Core database seeding logic for demo personas and review queue items."""
     if not _settings.DEMO_MODE:
         return 0
+
+    # NEW-10 FIX: Fast-path check to avoid 25 serial queries on every cold start when data exists
+    persona_ids = [p["applicant"]["id"] for p in DEMO_PERSONAS]
+    res = await db.execute(select(func.count(Score.id)).where(Score.applicant_id.in_(persona_ids)))
+    if res.scalar() == len(DEMO_PERSONAS):
+        return len(DEMO_PERSONAS)
 
     for persona in DEMO_PERSONAS:
         app = persona["applicant"]

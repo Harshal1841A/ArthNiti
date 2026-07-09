@@ -72,7 +72,7 @@ export default function FinancialHealthCardPage() {
   const [whatIfScore, setWhatIfScore] = useState<any>(null);
   const [whatIfFeatures, setWhatIfFeatures] = useState<Record<string, number>>({});
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (!id) return;
     try {
       let appResp;
@@ -114,7 +114,9 @@ export default function FinancialHealthCardPage() {
         ? scoreResp.data.filter((s: any) => s.applicant_id === id)
         : [];
       if (scores.length) {
-        const latest = scores[scores.length - 1];
+        // NEW-05 FIX: Backend returns DESC order (order_by computed_at.desc()), so scores[0] is the LATEST score.
+        // Previously used scores[scores.length - 1], which picked the oldest historical score instead!
+        const latest = scores[0];
         setScore(latest);
         // Isolated: routing failure must not crash the page
         const routingResp = await api.get(`/v1/routing/${latest.score_id}`).catch(() => ({ data: null }));
@@ -124,7 +126,7 @@ export default function FinancialHealthCardPage() {
         const xais = Array.isArray(xaiResp.data)
           ? xaiResp.data.filter((x: any) => x.score_id === latest.score_id)
           : [];
-        if (xais.length) setXai(xais[xais.length - 1]);
+        if (xais.length) setXai(xais[0]);
 
         const offersResp = await api.get(`/v1/offers/${id}`).catch(() => ({ data: { offers: [] } }));
         setOffers(offersResp.data?.offers || []);
@@ -138,13 +140,10 @@ export default function FinancialHealthCardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, isDemo, language]);
 
-  // BUG-05 FIX: Add 'language' to the dependency array.
-  // Previously, changing language did not trigger loadData(), so the XAI narrative
-  // displayed in the old language until the user manually refreshed.
-  // loadData() reads `language` state and uses it to select the correct narrative.
-  useEffect(() => { if (id) loadData(); }, [id, language]); // eslint-disable-line react-hooks/exhaustive-deps
+  // BUG-05 & NEW-04 FIX: loadData is now a stable useCallback triggered when id or language changes.
+  useEffect(() => { if (id) loadData(); }, [id, loadData]);
 
   async function handleScore() {
     if (!id) return;

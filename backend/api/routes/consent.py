@@ -223,6 +223,7 @@ async def fetch_aa_data(
 async def list_consents_for_applicant(
     applicant_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """List all consent records for an applicant."""
     from backend.database.models import ConsentRecord

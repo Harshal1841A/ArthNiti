@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,13 +113,22 @@ export default function DemoPage() {
     setIsFallback(false);
   }, [selectedPersona, language]);
 
-  const nodes = AGENT_STAGES.map((id) => ({
-    id,
-    name: AGENT_NAMES[id],
-    icon: AGENT_ICONS[id],
-    status: agentStatuses[id],
-    latencyMs: agentStatuses[id] === 'complete' ? Math.floor(Math.random() * 150 + 50) : undefined,
-  }));
+  // NEW-06 FIX: Stable latencies per stage so Math.random() doesn't flicker on re-renders
+  const latenciesRef = useRef<Record<string, number>>({});
+  const nodes = useMemo(() => {
+    return AGENT_STAGES.map((id) => {
+      if (agentStatuses[id] === 'complete' && !latenciesRef.current[id]) {
+        latenciesRef.current[id] = Math.floor(Math.random() * 150 + 50);
+      }
+      return {
+        id,
+        name: AGENT_NAMES[id],
+        icon: AGENT_ICONS[id],
+        status: agentStatuses[id],
+        latencyMs: agentStatuses[id] === 'complete' ? latenciesRef.current[id] : undefined,
+      };
+    });
+  }, [agentStatuses]);
 
   const tierConfig = TIER_CONFIG[selectedPersona.tier];
   const strengths = [

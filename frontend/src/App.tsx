@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -87,6 +87,8 @@ export default function App() {
                         }
                       />
                       <Route path="/demo" element={<DemoModePage />} />
+                      {/* NEW-03 FIX: Catch-all 404 route redirecting to dashboard */}
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>
                 </main>

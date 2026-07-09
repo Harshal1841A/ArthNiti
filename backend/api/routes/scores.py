@@ -79,10 +79,24 @@ async def score_applicant(
     )
 
 
+@router.get("", response_model=list[ScoreResponse])
+async def list_scores(
+    applicant_id: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500, description="Max results (BUG-21 FIX: bounded)"),
+    _auth: str = Depends(verify_api_key),
+):
+    """List all scores."""
+    # BUG-08 FIX: Build full WHERE clause BEFORE applying ORDER BY + LIMIT.
+    # Previously WHERE was chained after LIMIT which causes SQLAlchemy to emit
+    # a subquery where LIMIT precedes the filter, potentially missing records.
+
+
 @router.get("/{score_id}", response_model=ScoreResponse)
 async def get_score(
     score_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Retrieve a previously computed score."""
     score = await db.get(Score, score_id)
@@ -101,18 +115,6 @@ async def get_score(
         data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
         is_synthetic_applicant=applicant.is_synthetic if applicant else True,
     )
-
-
-@router.get("", response_model=list[ScoreResponse])
-async def list_scores(
-    applicant_id: str | None = None,
-    db: AsyncSession = Depends(get_db),
-    limit: int = Query(100, ge=1, le=500, description="Max results (BUG-21 FIX: bounded)"),
-):
-    """List all scores."""
-    # BUG-08 FIX: Build full WHERE clause BEFORE applying ORDER BY + LIMIT.
-    # Previously WHERE was chained after LIMIT which causes SQLAlchemy to emit
-    # a subquery where LIMIT precedes the filter, potentially missing records.
     stmt = select(Score)
     if applicant_id:
         stmt = stmt.where(Score.applicant_id == applicant_id)

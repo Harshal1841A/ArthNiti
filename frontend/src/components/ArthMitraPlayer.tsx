@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, Globe, VolumeX } from 'lucide-react';
 
@@ -133,14 +133,18 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
   const speakVernacularTTS = (textToSpeak: string, langCode: string) => {
     stopAllAudio();
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = langCode;
-      utterance.rate = 0.95;
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => setIsPlaying(false);
-      window.speechSynthesis.speak(utterance);
-      setUsingFallback(true);
+      // NEW-01 FIX: Web Speech API cancel() is async under the hood on Chrome/Safari mobile.
+      // Calling speak() instantly causes the old utterance to restart or overlap.
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = langCode;
+        utterance.rate = 0.95;
+        utterance.onstart = () => setIsPlaying(true);
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = () => setIsPlaying(false);
+        window.speechSynthesis.speak(utterance);
+        setUsingFallback(true);
+      }, 50);
     }
   };
 
@@ -165,6 +169,14 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
       speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
     }
   };
+
+  // NEW-02 FIX: Memoize random waveform heights and durations so re-renders do not recreate them
+  const waveformBars = useMemo(() => {
+    return Array.from({ length: 20 }).map(() => ({
+      height: 24 + Math.random() * 16,
+      duration: 0.35 + Math.random() * 0.25,
+    }));
+  }, []);
 
   return (
     <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)]/70 space-y-4 font-sans">
@@ -192,17 +204,17 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
 
         {/* Waveform */}
         <div className="flex-1 flex items-center gap-[3px] h-10 overflow-hidden px-2">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {waveformBars.map((bar, i) => (
             <motion.div
               key={i}
               className={`w-1 rounded-full ${isPlaying ? 'bg-[var(--accent-emerald)]' : 'bg-[var(--border-subtle)]'}`}
               animate={
                 isPlaying
-                  ? { height: [6, 24 + Math.random() * 16, 6] }
+                  ? { height: [6, bar.height, 6] }
                   : { height: 6 }
               }
               transition={{
-                duration: 0.35 + Math.random() * 0.25,
+                duration: bar.duration,
                 repeat: isPlaying ? Infinity : 0,
                 repeatType: 'reverse',
                 delay: i * 0.03,
