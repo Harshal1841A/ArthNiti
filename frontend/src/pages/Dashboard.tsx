@@ -84,13 +84,13 @@ function BorrowerOverview() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to="/applicants/APP-SURESH/health-card?demo=true"
+            to="/applicants/APP-SURESH/health-card?demo=true&tab=sanction"
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-xs font-bold text-[#0A0B0F] shadow-sm hover:opacity-90 transition-opacity"
           >
             <Zap className="h-4 w-4" /> View Sanction & AI Narrative
           </Link>
           <Link
-            to="/applicants/APP-SURESH/health-card?demo=true"
+            to="/applicants/APP-SURESH/health-card?demo=true&tab=overview"
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
           >
             <FileCheck className="h-4 w-4" /> My 360° Health Card
@@ -144,7 +144,7 @@ function BorrowerOverview() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
-            to="/applicants/APP-SURESH/health-card?demo=true"
+            to="/applicants/APP-SURESH/health-card?demo=true&tab=sanction"
             className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
           >
             <div>
@@ -164,7 +164,7 @@ function BorrowerOverview() {
           </Link>
 
           <Link
-            to="/applicants/APP-SURESH/health-card?demo=true"
+            to="/applicants/APP-SURESH/health-card?demo=true&tab=overview"
             className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
           >
             <div>

@@ -97,7 +97,7 @@ export default function FinancialHealthCardPage() {
   const { currentPersona, setPersona } = useAuth();
   const isBorrower = currentPersona === 'applicant';
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const isDemo = searchParams.has('demo') || Boolean(id?.startsWith('DEMO-') || id?.startsWith('APP-'));
 
@@ -108,6 +108,15 @@ export default function FinancialHealthCardPage() {
     if (tabParam === 'all') return 'all';
     return 'overview';
   });
+
+  const handleTabChange = (tabName: 'overview' | 'sanction' | 'xai' | 'all') => {
+    setActiveTab(tabName);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabName);
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -494,7 +503,7 @@ export default function FinancialHealthCardPage() {
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4 mb-6">
             <button
               type="button"
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabChange('overview')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activeTab === 'overview'
                   ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
@@ -505,7 +514,7 @@ export default function FinancialHealthCardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('sanction')}
+              onClick={() => handleTabChange('sanction')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activeTab === 'sanction'
                   ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
@@ -516,7 +525,7 @@ export default function FinancialHealthCardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('xai')}
+              onClick={() => handleTabChange('xai')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activeTab === 'xai'
                   ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
@@ -527,7 +536,7 @@ export default function FinancialHealthCardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('all')}
+              onClick={() => handleTabChange('all')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold ml-auto transition-all cursor-pointer ${
                 activeTab === 'all'
                   ? 'bg-[var(--surface-raised)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm'
@@ -541,6 +550,18 @@ export default function FinancialHealthCardPage() {
           {/* Overview Tab: Score + Card Row + SHAP + What-If */}
           {(activeTab === 'overview' || activeTab === 'all') && (
             <div className="space-y-6 mb-8">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-xs text-[var(--text-secondary)] flex items-start gap-3 shadow-sm">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] font-bold font-mono text-sm border border-[var(--accent)]/30">
+                  360°
+                </div>
+                <div>
+                  <strong className="text-[var(--text-primary)] font-sans text-sm">Why is this called a 360° Financial Health Card?</strong>
+                  <p className="mt-1 leading-relaxed">
+                    Unlike traditional banks that rely on a single static bureau check (CIBIL) or PDF statement, ArthNiti evaluates your business across all 360 degrees of financial health: <span className="text-[var(--text-primary)] font-semibold">Bank Account Aggregator cash flow velocity</span>, <span className="text-[var(--text-primary)] font-semibold">14-month GSTR-3B tax compliance</span>, <span className="text-[var(--text-primary)] font-semibold">OCEN daily UPI settlements</span>, and <span className="text-[var(--text-primary)] font-semibold">AI explainability (SHAP factors)</span>. Just like a medical health report card, it synthesizes every vital sign into one actionable score.
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <FinancialHealthCard
                   score={displayScore.score}

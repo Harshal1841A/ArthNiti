@@ -27,7 +27,7 @@ function LedgerFoldMark() {
 }
 
 export default function Sidebar({ collapsed = false }: SidebarProps) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { currentPersona, setPersona, user } = useAuth();
   const persona = currentPersona === 'applicant' ? 'borrower' : 'underwriter';
@@ -53,7 +53,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
     persona === 'borrower'
       ? [
           { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
-          { to: '/applicants/APP-SURESH/health-card?demo=true', icon: CreditCard, label: 'My Health Card' },
+          { to: '/applicants/APP-SURESH/health-card?demo=true&tab=overview', icon: CreditCard, label: '360° Health Card' },
+          { to: '/applicants/APP-SURESH/health-card?demo=true&tab=sanction', icon: Zap, label: 'Sanction & Offers' },
         ]
       : [
           { to: '/dashboard', icon: LayoutDashboard, label: 'Risk Dashboard' },
@@ -65,6 +66,17 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
 
   const isActive = (to: string) => {
     if (to === '/dashboard') return pathname === '/' || pathname === '/dashboard';
+    if (to.includes('?')) {
+      const [pathPart, queryPart] = to.split('?');
+      if (pathname !== pathPart) return false;
+      const urlParams = new URLSearchParams(queryPart);
+      if (urlParams.has('tab')) {
+        const tabVal = urlParams.get('tab');
+        const currentTab = new URLSearchParams(search).get('tab') || 'overview';
+        return currentTab === tabVal;
+      }
+      return true;
+    }
     return pathname.startsWith(to);
   };
 
