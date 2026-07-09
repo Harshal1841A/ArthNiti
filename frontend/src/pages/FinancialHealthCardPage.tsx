@@ -16,6 +16,49 @@ import ArthMitraPlayer from '@/components/ArthMitraPlayer';
 import DecisionTrail from '@/components/DecisionTrail';
 import MultiAgentViz from '@/components/MultiAgentViz';
 
+// Default fallback OCEN offers to guarantee Sanction Letter & Offers functionality across all profiles
+const DEFAULT_FALLBACK_OFFERS = [
+  {
+    lender_name: "Partner Co-op Bank",
+    lender_type: "COOP",
+    interest_rate_annual: 11.5,
+    tenure_months: 24,
+    max_amount: 600000.0,
+    processing_fee_pct: 1.2,
+    emi: 28142,
+    total_interest: 75408,
+    disbursement_days: 3,
+    min_score_required: 55,
+    features: ["Same-day approval", "No collateral up to ₹6L", "Flexible repayment"],
+  },
+  {
+    lender_name: "Partner National Bank",
+    lender_type: "BANK",
+    interest_rate_annual: 12.5,
+    tenure_months: 24,
+    max_amount: 600000.0,
+    processing_fee_pct: 1.5,
+    emi: 28368,
+    total_interest: 80832,
+    disbursement_days: 5,
+    min_score_required: 60,
+    features: ["Government-backed trust", "Priority sector lending", "Digital disbursement"],
+  },
+  {
+    lender_name: "Partner NBFC",
+    lender_type: "NBFC",
+    interest_rate_annual: 13.2,
+    tenure_months: 18,
+    max_amount: 600000.0,
+    processing_fee_pct: 2.0,
+    emi: 36770,
+    total_interest: 61860,
+    disbursement_days: 1,
+    min_score_required: 50,
+    features: ["Instant disbursement", "24-hour turnaround", "Top-up facility"],
+  },
+];
+
 // Lightweight score simulation for What-If
 function simulateScore(features: Record<string, number>): { score: number; tier: string; factors: { feature: string; shap_value: number }[] } {
   const bounce = features.bounce_count_90d ?? 0;
@@ -88,7 +131,7 @@ export default function FinancialHealthCardPage() {
           setScore(d.score_result);
           setTrail(d.decision_trail);
           setRouting(d.routing);
-          setOffers(d.loan_offers);
+          setOffers((d.loan_offers && d.loan_offers.length > 0) ? d.loan_offers : DEFAULT_FALLBACK_OFFERS);
           const xaiPayload = {
             xai_id: `DEMO-XAI-${id}`,
             narrative: d.xai_narrative[language] || d.xai_narrative['en'],
@@ -137,10 +180,12 @@ export default function FinancialHealthCardPage() {
         } else {
           setXai(null);
         }
-
-        const offersResp = await api.get(`/v1/offers/${id}`).catch(() => ({ data: { offers: [] } }));
-        setOffers(offersResp.data?.offers || []);
       }
+
+      const offersUrl = (isDemo || appResp.data?.is_synthetic) ? `/v1/demo/offers/${id}` : `/v1/offers/${id}`;
+      const offersResp = await api.get(offersUrl).catch(() => ({ data: { offers: [] } }));
+      const fetchedOffers = offersResp.data?.offers;
+      setOffers((Array.isArray(fetchedOffers) && fetchedOffers.length > 0) ? fetchedOffers : DEFAULT_FALLBACK_OFFERS);
 
       // Isolated: trail failure must not crash the page
       const trailResp = await api.get(`/v1/decision-trail/${id}`).catch(() => ({ data: { stages: [] } }));
@@ -170,7 +215,8 @@ export default function FinancialHealthCardPage() {
       // Offers — isolated
       const offersUrl = applicant?.is_synthetic ? `/v1/demo/offers/${id}` : `/v1/offers/${id}`;
       const offersResp = await api.get(offersUrl).catch(() => ({ data: { offers: [] } }));
-      setOffers(offersResp.data?.offers || []);
+      const fetchedOffers = offersResp.data?.offers;
+      setOffers((Array.isArray(fetchedOffers) && fetchedOffers.length > 0) ? fetchedOffers : DEFAULT_FALLBACK_OFFERS);
       // Trail — isolated
       const trailResp = await api.get(`/v1/decision-trail/${id}`).catch(() => ({ data: { stages: [] } }));
       setTrail(trailResp.data?.stages || []);

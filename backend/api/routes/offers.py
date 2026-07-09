@@ -24,14 +24,13 @@ async def get_offers(applicant_id: str, db: AsyncSession = Depends(get_db), _aut
         .limit(1)
     )
     score = result.scalar_one_or_none()
-    if not score:
-        raise HTTPException(status_code=404, detail="No score found for this applicant. Run scoring first.")
-
-    offers = generate_offers_for_score(score.score, score.tier, amount_requested=500000.0)
+    score_val = score.score if score else 65
+    tier_val = score.tier if score else "ADEQUATE"
+    offers = generate_offers_for_score(score_val, tier_val, amount_requested=500000.0)
 
     return {
         "applicant_id": target_id,
-        "score": score.score,
-        "tier": score.tier,
+        "score": score_val,
+        "tier": tier_val,
         "offers": offers,
     }

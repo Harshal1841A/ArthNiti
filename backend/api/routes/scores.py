@@ -57,7 +57,7 @@ async def score_applicant(
         raise HTTPException(status_code=400, detail=str(e))
 
     score = Score(
-        applicant_id=applicant_id,
+        applicant_id=target_id,
         normalized_features_id=features_row.id,
         score=score_result["score"],
         tier=score_result["tier"],

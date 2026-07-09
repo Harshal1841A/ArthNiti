@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Loader2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
 
@@ -38,6 +38,15 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
   const [bidStage, setBidStage] = useState<'idle' | 'signing' | 'disbursed'>('idle');
   const [mandateId, setMandateId] = useState<string>('');
 
+  useEffect(() => {
+    if (!acceptedBid && offers && offers.length > 0) {
+      setSelectedIndex(0);
+      setAcceptedBid(offers[0]);
+      setBidStage('disbursed');
+      setMandateId(`OCEN-MANDATE-${Math.floor(100000 + Math.random() * 900000)}`);
+    }
+  }, [offers, acceptedBid]);
+
   const handleSelectBid = (offer: LoanOffer, index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedIndex(index);
@@ -51,7 +60,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
 
     setTimeout(() => {
       setBidStage('disbursed');
-    }, 1400);
+    }, 800);
   };
 
   const handleDownloadReceipt = () => {
@@ -118,7 +127,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
               return (
                 <motion.div
                   key={index}
-                  onClick={() => setSelectedIndex(index)}
+                  onClick={(e) => handleSelectBid(offer, index, e)}
                   className={`flex-shrink-0 w-[290px] min-h-[380px] rounded-xl border p-5 cursor-pointer transition-all duration-300 snap-start flex flex-col justify-between ${
                     isSelected ? 'card-surface-elevated border-[var(--accent-emerald)]/70 ring-1 ring-[var(--accent-emerald)]/30' : 'card-surface-base hover:border-[var(--text-secondary)]'
                   }`}

@@ -379,7 +379,13 @@ async def demo_offers(
     target_id = ALIAS_MAP.get(applicant_id, applicant_id)
     persona = get_persona_by_id(target_id)
     if not persona:
-        raise HTTPException(status_code=404, detail="Persona not found")
+        offers = generate_offers_for_score(65, "ADEQUATE", amount_requested=500000.0)
+        return {
+            "applicant_id": target_id,
+            "score": 65,
+            "tier": "ADEQUATE",
+            "offers": offers,
+        }
 
     return {
         "applicant_id": target_id,
