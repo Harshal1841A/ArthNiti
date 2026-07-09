@@ -10,11 +10,11 @@ export default function CoverageStatCard({ title, value, subtitle }: Props) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-500">{title}</CardTitle>
+        <CardTitle className="text-sm font-bold text-[var(--text-secondary)]">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold font-mono">{value}</div>
-        {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+        <div className="text-2xl font-bold font-mono text-[var(--text-primary)]">{value}</div>
+        {subtitle && <p className="text-xs text-[var(--text-secondary)] font-medium mt-1">{subtitle}</p>}
       </CardContent>
     </Card>
   );

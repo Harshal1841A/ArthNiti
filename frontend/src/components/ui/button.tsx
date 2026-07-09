@@ -10,12 +10,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'default', isLoading, children, disabled, ...props }, ref) => {
     const variants = {
-      default: 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20',
-      gold: 'bg-amber-500 text-slate-900 hover:bg-amber-600 font-semibold shadow-lg shadow-amber-500/20',
-      outline: 'border border-slate-600 bg-slate-800/50 text-slate-200 hover:bg-slate-700 hover:border-slate-500',
-      ghost: 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200',
-      danger: 'bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/20',
-      glow: 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50',
+      default: 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 shadow-sm font-semibold',
+      gold: 'bg-[#C9A961] text-black hover:bg-[#b89750] font-bold shadow-sm',
+      outline: 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] hover:border-[var(--text-secondary)] font-medium',
+      ghost: 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] font-medium',
+      danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm font-semibold',
+      glow: 'bg-[#10B981] text-white hover:bg-[#10B981]/90 shadow-md shadow-[#10B981]/20 font-semibold',
     };
 
     const sizes = {
@@ -28,7 +28,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)] disabled:pointer-events-none disabled:opacity-50',
           variants[variant],
           sizes[size],
           className

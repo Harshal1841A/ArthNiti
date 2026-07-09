@@ -75,7 +75,7 @@ export default function ScoreGauge({ score, tier, size = 200, duration = 1.5 }: 
         >
           {displayScore}
         </motion.span>
-        <span className="text-xs text-slate-500 mt-0.5">/ 100</span>
+        <span className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">/ 100</span>
       </div>
       {/* Glow ring */}
       <motion.div

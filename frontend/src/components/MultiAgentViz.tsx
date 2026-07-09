@@ -66,21 +66,21 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
           const isActive = index <= activeIndex;
           const isCurrent = index === activeIndex;
 
-          const bgColor = isCurrent ? 'rgba(201, 169, 97, 0.08)' : 'var(--bg-card)';
+          const bgColor = isCurrent ? 'rgba(201, 169, 97, 0.12)' : isActive ? 'var(--bg-card-hover)' : 'var(--bg-card)';
 
           return (
             <div key={node.id} className="relative z-10 flex flex-col items-center gap-2.5">
               <motion.div
-                className="relative flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-300"
+                className="relative flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-300 shadow-sm"
                 style={{
-                  borderColor: isCurrent ? '#C9A961' : isActive ? 'rgba(242, 240, 233, 0.25)' : 'var(--border)',
+                  borderColor: isCurrent ? '#C9A961' : isActive ? 'var(--accent, #C9A961)' : 'var(--border)',
                   backgroundColor: bgColor,
-                  boxShadow: isCurrent ? '0 0 20px rgba(201, 169, 97, 0.25)' : 'none',
+                  boxShadow: isCurrent ? '0 0 20px rgba(201, 169, 97, 0.25)' : isActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
                 }}
                 animate={isCurrent ? { scale: [1, 1.05, 1] } : {}}
                 transition={{ duration: 1.5, repeat: isCurrent ? Infinity : 0, ease: 'easeInOut' }}
               >
-                <span style={{ color: isCurrent ? '#C9A961' : isActive ? '#F2F0E9' : '#646670' }}>{node.icon}</span>
+                <span style={{ color: isCurrent ? '#C9A961' : isActive ? 'var(--accent, #C9A961)' : 'var(--text-muted)' }}>{node.icon}</span>
                 {isCurrent && (
                   <motion.div
                     className="absolute inset-0 rounded-xl border border-[#C9A961]"
@@ -101,10 +101,10 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
               )}
 
               <div className="text-center">
-                <span className={`block font-mono text-[11px] font-medium tracking-[0.05em] uppercase ${isActive ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-muted)]'}`}>
+                <span className={`block font-sans text-xs tracking-tight ${isActive ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
                   {node.name}
                 </span>
-                <span className={`block font-mono text-[10px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isActive ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'}`}>
+                <span className={`block font-mono text-[11px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isActive ? 'text-[#10B981] font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
                   {isCurrent ? 'ACTIVE...' : isActive ? 'VERIFIED' : 'IDLE'}
                 </span>
               </div>

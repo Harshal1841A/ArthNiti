@@ -8,6 +8,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import MultiAgentViz from '@/components/MultiAgentViz';
 import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const TIER_COLORS: Record<string, string> = {
   STRONG: '#10B981',
@@ -63,7 +64,132 @@ function KPICard({ title, value, subtitle, trend, trendValue, icon }: any) {
   );
 }
 
+function BorrowerOverview() {
+  const { user } = useAuth();
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto font-sans">
+      {/* Borrower Welcome Header */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="badge badge-strong font-mono text-[10px]">VERIFIED MSME BORROWER</span>
+            <span className="text-xs font-mono text-[var(--text-secondary)]">ID: USR-MSME-01</span>
+          </div>
+          <h1 className="text-2xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
+            Welcome, {user.name}
+          </h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-1 max-w-xl">
+            {user.title} — Connected to IDBI Bank Account Aggregator Network via Anumati Consent Framework.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/demo"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-xs font-bold text-[#0A0B0F] shadow-sm hover:opacity-90 transition-opacity"
+          >
+            <Zap className="h-4 w-4" /> Launch Instant Loan Demo
+          </Link>
+          <Link
+            to="/applicants/DEMO-P1/health-card"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
+          >
+            <FileCheck className="h-4 w-4" /> View My 360° Health Card
+          </Link>
+        </div>
+      </div>
+
+      {/* Credit Status & Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Credit Health Score</span>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="text-3xl font-bold font-mono text-[#10B981]">85</span>
+            <span className="text-sm font-mono text-[var(--text-secondary)]">/ 100</span>
+            <span className="badge badge-strong ml-auto">STRONG</span>
+          </div>
+          <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3">
+            Based on 14-month GSTR-3B filings & steady cash velocity. Eligible for premium rate tiers.
+          </p>
+        </div>
+
+        <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Pre-Approved Credit Limit</span>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">₹25,00,000</span>
+          </div>
+          <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3 flex items-center justify-between">
+            <span>Interest Rate: <strong className="text-[var(--text-primary)] font-mono">10.5% p.a.</strong></span>
+            <span className="text-[#10B981] font-medium flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Disbursal</span>
+          </p>
+        </div>
+
+        <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Connected AA Consent</span>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-sm font-bold text-[var(--text-primary)] font-mono">Anumati AA Pipeline</span>
+            <span className="flex items-center gap-1.5 text-xs text-[#10B981] font-semibold bg-[#10B981]/10 px-2 py-0.5 rounded-full border border-[#10B981]/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" /> Active
+            </span>
+          </div>
+          <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3">
+            Linked to IDBI Bank Current A/c (...8841) & GSTIN 27AAACP1234A1Z5.
+          </p>
+        </div>
+      </div>
+
+      {/* Available Features Section */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight mb-4 flex items-center gap-2">
+          <Activity className="h-5 w-5 text-[var(--accent)]" /> Your Available Features
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            to="/demo"
+            className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-mono font-bold text-[var(--accent)] group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                  Launch <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[var(--text-primary)] mb-1">Instant Loan Demo & AI Negotiation</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                Experience real-time credit underwriting powered by Multi-Agent AI. Watch 4 autonomous agents evaluate your cash flow and issue an instant ₹25L sanction letter.
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/applicants/DEMO-P1/health-card"
+            className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                  <FileCheck className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-mono font-bold text-[#10B981] group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                  View Card <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[var(--text-primary)] mb-1">360° Financial Health Card</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                Inspect your verified credit health breakdown, GST vs bank reconciliation score, alternate data coverage, and custom AI improvement tips.
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const { currentPersona } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [scores, setScores] = useState<any[]>([]);
   const [applicants, setApplicants] = useState<any[]>([]);
@@ -72,6 +198,10 @@ export default function Dashboard() {
   void error;
   const [animatingAgent] = useState(false);
   const navigate = useNavigate();
+
+  if (currentPersona === 'applicant') {
+    return <BorrowerOverview />;
+  }
 
   useEffect(() => {
     async function load() {

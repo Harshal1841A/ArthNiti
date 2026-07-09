@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth, PersonaKey } from '../context/AuthContext';
 import { useTheme, Theme } from '../context/ThemeContext';
 import { Bell, ChevronRight, Moon, Sun, AlertTriangle, CheckCircle2, ArrowRight, X, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
@@ -20,6 +20,24 @@ export default function Navbar() {
   const { currentPersona, setPersona } = useAuth();
   const { theme, setTheme } = useTheme();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  const handleNavbarPersonaChange = (key: PersonaKey) => {
+    setPersona(key);
+    if (key === 'applicant') {
+      if (
+        pathname.startsWith('/reviews') ||
+        pathname.startsWith('/adapters') ||
+        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-P1'))
+      ) {
+        navigate('/demo');
+      }
+    } else {
+      if (pathname === '/demo' || pathname.includes('DEMO-P1')) {
+        navigate('/dashboard');
+      }
+    }
+  };
 
   const [alerts, setAlerts] = useState<ReviewAlert[]>([]);
   const [loading, setLoading] = useState(false);
@@ -140,7 +158,7 @@ export default function Navbar() {
           <span className="font-medium">Persona:</span>
           <select
             value={currentPersona}
-            onChange={(e) => setPersona(e.target.value as any)}
+            onChange={(e) => handleNavbarPersonaChange(e.target.value as PersonaKey)}
             className="bg-transparent text-[var(--text-primary)] font-semibold text-xs focus:outline-none cursor-pointer"
           >
             <option value="admin" className="bg-[var(--bg-card)] text-[var(--text-primary)]">Ananya Sharma (Admin)</option>

@@ -7,18 +7,18 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   const variants = {
-    default: 'bg-slate-800 text-slate-100 border-slate-700',
-    secondary: 'bg-slate-700 text-slate-200 border-slate-600',
-    destructive: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    outline: 'border-slate-600 bg-slate-800/50 text-slate-300',
-    strong: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-    adequate: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-    watch: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    'high-risk': 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-    high_risk: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-    pending: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-    approved: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-    rejected: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+    default: 'bg-[var(--bg-card-hover)] text-[var(--text-primary)] border-[var(--border)] font-bold',
+    secondary: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] font-semibold',
+    destructive: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 font-bold',
+    outline: 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] font-semibold',
+    strong: 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 font-bold',
+    adequate: 'bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30 font-bold',
+    watch: 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30 font-bold',
+    'high-risk': 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 font-bold',
+    high_risk: 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 font-bold',
+    pending: 'bg-[var(--bg-card-hover)] text-[var(--text-secondary)] border border-[var(--border)] font-semibold',
+    approved: 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 font-bold',
+    rejected: 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 font-bold',
   };
 
   return (

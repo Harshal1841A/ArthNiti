@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -29,14 +28,29 @@ function LedgerFoldMark() {
 
 export default function Sidebar({ collapsed = false }: SidebarProps) {
   const { pathname } = useLocation();
-  const { user } = useAuth();
-  const [persona, setPersona] = useState<'borrower' | 'underwriter'>(() => {
-    return (localStorage.getItem('arthniti_persona') as 'borrower' | 'underwriter') || 'borrower';
-  });
+  const navigate = useNavigate();
+  const { currentPersona, setPersona, user } = useAuth();
+  const persona = currentPersona === 'applicant' ? 'borrower' : 'underwriter';
 
-  useEffect(() => {
-    localStorage.setItem('arthniti_persona', persona);
-  }, [persona]);
+  const handlePersonaChange = (target: 'borrower' | 'underwriter') => {
+    if (target === 'borrower') {
+      setPersona('applicant');
+      // Redirect out of underwriter-only routes immediately
+      if (
+        pathname.startsWith('/reviews') ||
+        pathname.startsWith('/adapters') ||
+        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-P1'))
+      ) {
+        navigate('/demo');
+      }
+    } else {
+      setPersona('credit_officer');
+      // Redirect out of borrower-only routes immediately
+      if (pathname === '/demo' || pathname.includes('DEMO-P1')) {
+        navigate('/dashboard');
+      }
+    }
+  };
 
   const links =
     persona === 'borrower'
@@ -75,13 +89,13 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
         )}
       </div>
 
-      {/* Persona Switcher Header (Google UI Role Segregation) */}
+      {/* Persona Switcher Header (Role Access Segregation) */}
       {!collapsed && (
         <div className="px-3 pt-3">
           <div className="flex rounded-xl p-1 bg-[var(--bg-card)] border border-[var(--border)]">
             <button
               type="button"
-              onClick={() => setPersona('borrower')}
+              onClick={() => handlePersonaChange('borrower')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-sans font-bold transition-all cursor-pointer ${
                 persona === 'borrower'
                   ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
@@ -92,7 +106,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
             </button>
             <button
               type="button"
-              onClick={() => setPersona('underwriter')}
+              onClick={() => handlePersonaChange('underwriter')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-sans font-bold transition-all cursor-pointer ${
                 persona === 'underwriter'
                   ? 'bg-[var(--accent-blue)] text-white shadow-sm'

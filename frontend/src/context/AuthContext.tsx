@@ -50,7 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentPersona, setCurrentPersonaState] = useState<PersonaKey>(() => {
     try {
       const saved = localStorage.getItem('arthniti_demo_persona') as PersonaKey;
-      return saved && PERSONAS[saved] ? saved : 'admin';
+      if (saved && PERSONAS[saved]) return saved;
+      const legacyRole = localStorage.getItem('arthniti_persona');
+      if (legacyRole === 'borrower') return 'applicant';
+      if (legacyRole === 'underwriter') return 'credit_officer';
+      return 'admin';
     } catch {
       return 'admin';
     }
@@ -61,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentPersonaState(key);
       try {
         localStorage.setItem('arthniti_demo_persona', key);
+        localStorage.setItem('arthniti_persona', key === 'applicant' ? 'borrower' : 'underwriter');
       } catch {}
     }
   };

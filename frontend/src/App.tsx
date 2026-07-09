@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
+import PersonaGuard from './components/PersonaGuard';
 
 import Landing from './pages/Landing';
 
@@ -52,11 +53,39 @@ export default function App() {
                   <Suspense fallback={<RouteFallback />}>
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/applicants" element={<ApplicantsList />} />
-                      <Route path="/applicants/new" element={<NewApplication />} />
+                      <Route
+                        path="/applicants"
+                        element={
+                          <PersonaGuard allowedPersonas={['credit_officer', 'admin']}>
+                            <ApplicantsList />
+                          </PersonaGuard>
+                        }
+                      />
+                      <Route
+                        path="/applicants/new"
+                        element={
+                          <PersonaGuard allowedPersonas={['credit_officer', 'admin']}>
+                            <NewApplication />
+                          </PersonaGuard>
+                        }
+                      />
                       <Route path="/applicants/:id" element={<FinancialHealthCardPage />} />
-                      <Route path="/reviews" element={<ReviewQueuePage />} />
-                      <Route path="/adapters" element={<AdapterStatus />} />
+                      <Route
+                        path="/reviews"
+                        element={
+                          <PersonaGuard allowedPersonas={['credit_officer', 'admin']}>
+                            <ReviewQueuePage />
+                          </PersonaGuard>
+                        }
+                      />
+                      <Route
+                        path="/adapters"
+                        element={
+                          <PersonaGuard allowedPersonas={['credit_officer', 'admin']}>
+                            <AdapterStatus />
+                          </PersonaGuard>
+                        }
+                      />
                       <Route path="/demo" element={<DemoModePage />} />
                     </Routes>
                   </Suspense>
