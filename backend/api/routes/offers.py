@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db
+from backend.api.deps import get_db, verify_api_key
 from backend.config import get_settings
 from backend.adapters.ocen_adapter import generate_offers_for_score
 from backend.data.demo_personas import ALIAS_MAP
@@ -13,7 +13,7 @@ _settings = get_settings()
 
 
 @router.get("/{applicant_id}")
-async def get_offers(applicant_id: str, db: AsyncSession = Depends(get_db)):
+async def get_offers(applicant_id: str, db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
     """Return OCEN loan offers for an applicant based on their latest score."""
     target_id = ALIAS_MAP.get(applicant_id, applicant_id)
     # Look up the latest score

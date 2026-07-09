@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.adapters.document_fallback_adapter import parse_document_to_features
-from backend.api.deps import get_db, get_llm_client
+from backend.api.deps import get_db, get_llm_client, verify_api_key
 from backend.api.models import DocumentUploadStatusResponse
 from backend.database.models import Applicant, DocumentUpload, NormalizedFeatures
 from backend.core.feature_schema import DataSourceType
@@ -97,6 +97,7 @@ async def upload_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     llm_client=Depends(get_llm_client),
+    _auth: str = Depends(verify_api_key),
 ):
     """F7 entry point. Accepts PDF or text upload, runs async document processing."""
     applicant = await db.get(Applicant, applicant_id)
@@ -156,6 +157,7 @@ async def upload_document(
 async def get_upload_status(
     applicant_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Poll the latest document upload status for an applicant."""
     result = await db.execute(

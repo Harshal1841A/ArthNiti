@@ -6,7 +6,7 @@ GET /api/v1/decision-trail/{applicant_id}  → build_decision_trail() (F11)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db
+from backend.api.deps import get_db, verify_api_key
 from backend.api.models import DecisionTrailResponse
 from backend.core.decision_trail import build_decision_trail
 from backend.data.demo_personas import ALIAS_MAP
@@ -19,6 +19,7 @@ router = APIRouter()
 async def get_decision_trail(
     applicant_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Return the actual processing pipeline stages for an applicant."""
     target_id = ALIAS_MAP.get(applicant_id, applicant_id)

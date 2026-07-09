@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db
+from backend.api.deps import get_db, verify_api_key
 from backend.api.models import RoutingResponse
 from backend.core.routing import route_decision
 from backend.database.models import Score, ReviewQueue
@@ -19,6 +19,7 @@ router = APIRouter()
 async def get_routing(
     score_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Return routing decision for a score. WATCH/HIGH_RISK creates a review queue entry."""
     score = await db.get(Score, score_id)

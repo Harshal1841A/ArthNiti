@@ -46,6 +46,7 @@ async def list_applicants(
     db: AsyncSession = Depends(get_db),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    _auth: str = Depends(verify_api_key),
 ):
     """BUG-10 FIX: Added offset/limit pagination parameters to prevent unbounded queries."""
     result = await db.execute(
@@ -69,6 +70,7 @@ async def list_applicants(
 async def get_applicant(
     applicant_id: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """BUG-17 FIX: Retrieve a single applicant by ID directly, without fetching the entire list."""
     target_id = ALIAS_MAP.get(applicant_id, applicant_id)

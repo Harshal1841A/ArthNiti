@@ -92,31 +92,6 @@ async def list_scores(
     # BUG-08 FIX: Build full WHERE clause BEFORE applying ORDER BY + LIMIT.
     # Previously WHERE was chained after LIMIT which causes SQLAlchemy to emit
     # a subquery where LIMIT precedes the filter, potentially missing records.
-
-
-@router.get("/{score_id}", response_model=ScoreResponse)
-async def get_score(
-    score_id: str,
-    db: AsyncSession = Depends(get_db),
-    _auth: str = Depends(verify_api_key),
-):
-    """Retrieve a previously computed score."""
-    score = await db.get(Score, score_id)
-    if not score:
-        raise HTTPException(status_code=404, detail="Score not found")
-
-    applicant = await db.get(Applicant, score.applicant_id)
-    nf = await db.get(NormalizedFeatures, score.normalized_features_id)
-    return ScoreResponse(
-        score_id=score.id,
-        applicant_id=score.applicant_id,
-        score=score.score,
-        tier=score.tier,
-        contributing_factors=json.loads(score.contributing_factors_json),
-        inference_ms=score.inference_ms,
-        data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
-        is_synthetic_applicant=applicant.is_synthetic if applicant else True,
-    )
     stmt = select(Score)
     if applicant_id:
         target_id = ALIAS_MAP.get(applicant_id, applicant_id)
@@ -156,3 +131,28 @@ async def get_score(
             is_synthetic_applicant=applicant.is_synthetic if applicant else True,
         ))
     return out
+
+
+@router.get("/{score_id}", response_model=ScoreResponse)
+async def get_score(
+    score_id: str,
+    db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
+):
+    """Retrieve a previously computed score."""
+    score = await db.get(Score, score_id)
+    if not score:
+        raise HTTPException(status_code=404, detail="Score not found")
+
+    applicant = await db.get(Applicant, score.applicant_id)
+    nf = await db.get(NormalizedFeatures, score.normalized_features_id)
+    return ScoreResponse(
+        score_id=score.id,
+        applicant_id=score.applicant_id,
+        score=score.score,
+        tier=score.tier,
+        contributing_factors=json.loads(score.contributing_factors_json),
+        inference_ms=score.inference_ms,
+        data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
+        is_synthetic_applicant=applicant.is_synthetic if applicant else True,
+    )

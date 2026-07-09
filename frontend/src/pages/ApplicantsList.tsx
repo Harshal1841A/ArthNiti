@@ -27,15 +27,23 @@ export default function ApplicantsList() {
 
   useEffect(() => {
     api.get('/v1/applicants')
-      .then(r => setApplicants(r.data))
-      .catch(e => setError(e.response?.data?.detail || 'Failed to load applicants'))
+      .then(r => setApplicants(Array.isArray(r.data) ? r.data : []))
+      .catch(e => {
+        setError(e.response?.data?.detail || 'Failed to load applicants');
+        // Fallback mock portfolio when offline/demo
+        setApplicants([
+          { id: "MSME-4021", business_name: "Arjun Textiles & Co", has_bureau_record: true, is_synthetic: false, preferred_language: "EN", created_at: new Date().toISOString() },
+          { id: "MSME-4089", business_name: "Kaveri Agro Exports", has_bureau_record: false, is_synthetic: false, preferred_language: "HI", created_at: new Date(Date.now() - 86400000).toISOString() },
+          { id: "MSME-4102", business_name: "Vindhya Logistics Pvt Ltd", has_bureau_record: true, is_synthetic: true, preferred_language: "EN", created_at: new Date(Date.now() - 172800000).toISOString() }
+        ]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = applicants.filter(a => {
-    const matchesSearch = a.business_name.toLowerCase().includes(search.toLowerCase()) || a.id.toLowerCase().includes(search.toLowerCase());
-    if (filter === 'ntb') return matchesSearch && !a.has_bureau_record;
-    if (filter === 'synthetic') return matchesSearch && a.is_synthetic;
+  const filtered = (applicants || []).filter(a => {
+    const matchesSearch = (a?.business_name || '').toLowerCase().includes(search.toLowerCase()) || (a?.id || '').toLowerCase().includes(search.toLowerCase());
+    if (filter === 'ntb') return matchesSearch && !a?.has_bureau_record;
+    if (filter === 'synthetic') return matchesSearch && a?.is_synthetic;
     return matchesSearch;
   });
 
@@ -149,7 +157,7 @@ export default function ApplicantsList() {
                     <span className="text-xs font-mono uppercase font-semibold text-[var(--text-secondary)]">{a.preferred_language}</span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-xs font-mono text-[var(--text-secondary)]">{new Date(a.created_at).toLocaleDateString()}</span>
+                    <span className="text-xs font-mono text-[var(--text-secondary)]">{a?.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A'}</span>
                   </td>
                   <td className="py-4 px-6 text-right">
                     <Link to={`/applicants/${a.id}`}>

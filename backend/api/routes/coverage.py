@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db
+from backend.api.deps import get_db, verify_api_key
 from backend.api.models import AdapterCoverageResponse
 from backend.config import get_settings
 from backend.database.models import Applicant, NormalizedFeatures, Score
@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=AdapterCoverageResponse)
-async def get_coverage_stats(db: AsyncSession = Depends(get_db)):
+async def get_coverage_stats(db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
     """Compute real NTC/NTB coverage improvement metrics from the database."""
     total_result = await db.execute(select(func.count()).select_from(Applicant))
     total = total_result.scalar()

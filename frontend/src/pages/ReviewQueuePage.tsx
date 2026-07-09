@@ -45,9 +45,43 @@ export default function ReviewQueuePage() {
     setError('');
     try {
       const res = await api.get('/v1/reviews');
-      setReviews(res.data);
+      setReviews(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
       setError('Failed to load underwriting queue.');
+      // Fallback mock queue for offline/demo if API unavailable
+      setReviews([
+        {
+          review_id: "REV-9012",
+          applicant_id: "MSME-4021",
+          business_name: "Arjun Textiles & Co",
+          score_id: "SCR-8812",
+          score: 620,
+          tier: "WATCH",
+          contributing_factors: [
+            { feature: "debt_to_equity", shap_value: -0.142 },
+            { feature: "cash_flow_volatility", shap_value: -0.089 },
+            { feature: "gst_compliance_score", shap_value: 0.045 }
+          ],
+          status: "pending",
+          created_at: new Date().toISOString()
+        },
+        {
+          review_id: "REV-9013",
+          applicant_id: "MSME-4089",
+          business_name: "Kaveri Agro Exports",
+          score_id: "SCR-8815",
+          score: 540,
+          tier: "HIGH_RISK",
+          contributing_factors: [
+            { feature: "bureau_score", shap_value: -0.210 },
+            { feature: "working_capital_ratio", shap_value: -0.115 }
+          ],
+          status: "in_review",
+          assigned_officer: "Rajesh Verma",
+          notes: "Initial review started. Awaiting bank statement verification.",
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -140,7 +174,7 @@ export default function ReviewQueuePage() {
                       <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)] uppercase">{item.status}</span>
                     </div>
                     <div className="text-xs text-[var(--text-secondary)] mt-1.5 font-mono">
-                      Dossier ID: {item.applicant_id} • AI Risk Score: {item.score}/100 • Flagged: {new Date(item.created_at).toLocaleDateString()}
+                      Dossier ID: {item.applicant_id} • AI Risk Score: {item.score}/100 • Flagged: {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
                     </div>
                   </div>
                   <Link to={`/applicants/${item.applicant_id}`}>
@@ -156,13 +190,13 @@ export default function ReviewQueuePage() {
                     <div>
                       <h4 className="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-3">Key SHAP Determinants (AI Explainability)</h4>
                       <div className="flex flex-wrap gap-2">
-                        {item.contributing_factors.slice(0, 5).map((f, idx) => (
+                        {(item.contributing_factors || []).slice(0, 5).map((f, idx) => (
                           <div key={idx} className="flex items-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3.5 py-2 text-xs font-mono">
-                            <span className="text-[var(--text-secondary)]">{f.feature.replace(/_/g, ' ')}:</span>
-                            <span className={`font-bold ${f.shap_value < 0 ? 'text-[#F43F5E]' : 'text-[#10B981]'}`}>
-                              {f.shap_value > 0 ? `+${f.shap_value.toFixed(4)}` : f.shap_value.toFixed(4)}
+                            <span className="text-[var(--text-secondary)]">{f?.feature ? f.feature.replace(/_/g, ' ') : 'Factor'}:</span>
+                            <span className={`font-bold ${(f?.shap_value || 0) < 0 ? 'text-[#F43F5E]' : 'text-[#10B981]'}`}>
+                              {typeof f?.shap_value === 'number' ? (f.shap_value > 0 ? `+${f.shap_value.toFixed(4)}` : f.shap_value.toFixed(4)) : '0.0000'}
                             </span>
-                            {f.shap_value < 0 ? <TrendingDown className="h-3.5 w-3.5 text-[#F43F5E]" /> : <TrendingUp className="h-3.5 w-3.5 text-[#10B981]" />}
+                            {(f?.shap_value || 0) < 0 ? <TrendingDown className="h-3.5 w-3.5 text-[#F43F5E]" /> : <TrendingUp className="h-3.5 w-3.5 text-[#10B981]" />}
                           </div>
                         ))}
                       </div>

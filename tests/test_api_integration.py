@@ -199,8 +199,8 @@ def test_routing_endpoint_watch():
 def test_routing_endpoint_high_risk():
     from backend.core.routing import route_decision
     r = route_decision("HIGH_RISK")
-    assert r["routing"] == "REJECT"
-    assert r["requires_review"] is False
+    assert r["routing"] == "ENHANCED_REVIEW"
+    assert r["requires_review"] is True
 
 
 # ─────────────────────────────────────────

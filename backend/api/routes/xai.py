@@ -70,6 +70,7 @@ async def list_xai(
     applicant_id: str | None = None,
     db: AsyncSession = Depends(get_db),
     limit: int = 100,
+    _auth: str = Depends(verify_api_key),
 ):
     """List XAI narratives."""
     stmt = select(XAINarrative)

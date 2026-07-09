@@ -99,7 +99,7 @@ def test_routing_logic():
     assert route_decision("STRONG")["routing"] == "STRAIGHT_THROUGH"
     assert route_decision("ADEQUATE")["routing"] == "STRAIGHT_THROUGH"
     assert route_decision("WATCH")["routing"] == "ENHANCED_REVIEW"
-    assert route_decision("HIGH_RISK")["routing"] == "REJECT"
+    assert route_decision("HIGH_RISK")["routing"] == "ENHANCED_REVIEW"
 
     print("  [PASS] All tier routing decisions correct")
     return True

@@ -103,6 +103,7 @@ async def create_consent(
 async def get_consent_status(
     handle: str,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Poll consent status from AA sandbox."""
     result = await db.execute(

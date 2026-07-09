@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_db
+from backend.api.deps import get_db, verify_api_key
 from backend.api.models import ArthMitraSpeakRequest, ArthMitraSpeakResponse
 from backend.config import get_settings
 from backend.core.arth_mitra import TTSFallbackToBrowser, speak_narrative, get_pre_generated_narrative
@@ -17,6 +17,7 @@ async def speak_xai_narrative(
     xai_id: str,
     req: ArthMitraSpeakRequest,
     db: AsyncSession = Depends(get_db),
+    _auth: str = Depends(verify_api_key),
 ):
     """Synthesize speech for a cross-checked XAI narrative."""
     xai = await db.get(XAINarrative, xai_id)

@@ -37,10 +37,10 @@ export default function PersonaGuard({ allowedPersonas, children }: PersonaGuard
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/demo')}
+            onClick={() => navigate('/dashboard')}
             className="font-bold px-5 flex items-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4" /> Return to Instant Loan Demo
+            <ArrowLeft className="h-4 w-4" /> Return to Overview
           </Button>
         </div>
       </div>

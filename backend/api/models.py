@@ -57,6 +57,7 @@ class ScoreResponse(BaseModel):
 
 
 class XAINarrativeResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
     xai_id: str
     score_id: str
     narrative: str
