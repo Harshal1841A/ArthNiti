@@ -84,16 +84,16 @@ function BorrowerOverview() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to="/demo"
+            to="/applicants/APP-SURESH/health-card?demo=true"
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-xs font-bold text-[#0A0B0F] shadow-sm hover:opacity-90 transition-opacity"
           >
-            <Zap className="h-4 w-4" /> Launch Instant Loan Demo
+            <Zap className="h-4 w-4" /> View Sanction & AI Narrative
           </Link>
           <Link
             to="/applicants/APP-SURESH/health-card?demo=true"
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
           >
-            <FileCheck className="h-4 w-4" /> View My 360° Health Card
+            <FileCheck className="h-4 w-4" /> My 360° Health Card
           </Link>
         </div>
       </div>
@@ -144,7 +144,7 @@ function BorrowerOverview() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
-            to="/demo"
+            to="/applicants/APP-SURESH/health-card?demo=true"
             className="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent)] transition-all"
           >
             <div>
@@ -153,12 +153,12 @@ function BorrowerOverview() {
                   <Zap className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-mono font-bold text-[var(--accent)] group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                  Launch <ArrowUpRight className="h-3.5 w-3.5" />
+                  View Sanction <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
               </div>
-              <h3 className="text-base font-bold text-[var(--text-primary)] mb-1">Instant Loan Demo & AI Negotiation</h3>
+              <h3 className="text-base font-bold text-[var(--text-primary)] mb-1">Sanction Letter & Offers</h3>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Experience real-time credit underwriting powered by Multi-Agent AI. Watch 4 autonomous agents evaluate your cash flow and issue an instant ₹25L sanction letter.
+                Review your instant pre-approved loan sanction terms, interactive tier breakdown, and regional vernacular voice explanation by Arth-Mitra.
               </p>
             </div>
           </Link>

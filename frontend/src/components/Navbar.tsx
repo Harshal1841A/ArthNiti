@@ -28,12 +28,9 @@ export default function Navbar() {
       if (
         pathname.startsWith('/reviews') ||
         pathname.startsWith('/adapters') ||
+        pathname === '/demo' ||
         (pathname.startsWith('/applicants') && !pathname.includes('DEMO-') && !pathname.includes('APP-'))
       ) {
-        navigate('/demo');
-      }
-    } else {
-      if (pathname === '/demo') {
         navigate('/dashboard');
       }
     }

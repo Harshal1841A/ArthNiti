@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import {
   Card, CardContent, CardHeader, CardTitle,
@@ -29,7 +30,12 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 export default function DemoModePage() {
+  const { currentPersona } = useAuth();
   const [selected, setSelected] = useState<string | null>(null);
+
+  if (currentPersona === 'applicant') {
+    return <Navigate to="/applicants/APP-SURESH/health-card?demo=true" replace />;
+  }
 
   return (
     <div className="space-y-6">

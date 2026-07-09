@@ -6,6 +6,7 @@ import {
   TrendingUp, TrendingDown, Activity,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import FinancialHealthCard from '@/components/FinancialHealthCard';
 import ScoreGauge from '@/components/ScoreGauge';
 import SHAPWaterfall from '@/components/SHAPWaterfall';
@@ -50,6 +51,8 @@ function simulateScore(features: Record<string, number>): { score: number; tier:
 }
 
 export default function FinancialHealthCardPage() {
+  const { currentPersona, setPersona } = useAuth();
+  const isBorrower = currentPersona === 'applicant';
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const isDemo = searchParams.has('demo') || Boolean(id?.startsWith('DEMO-') || id?.startsWith('APP-'));
@@ -267,6 +270,35 @@ export default function FinancialHealthCardPage() {
     );
   }
 
+  if (isBorrower && id !== 'APP-SURESH' && !id?.startsWith('DEMO-')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] p-8 max-w-xl mx-auto text-center font-sans">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 mb-5 shadow-sm">
+          <AlertTriangle className="h-8 w-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 tracking-tight font-serif">
+          Role Access Restricted
+        </h2>
+        <p className="text-sm text-[var(--text-secondary)] mb-8 font-medium leading-relaxed">
+          You are currently signed in as a <span className="font-bold text-[var(--text-primary)]">Borrower</span>. You are authorized to inspect only your own verified 360° Financial Health Card (<span className="font-mono font-bold text-[var(--text-primary)]">APP-SURESH</span>). Accessing confidential financial records of other MSMEs requires Bank Underwriter credentials.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+          <button
+            onClick={() => setPersona('credit_officer')}
+            className="btn-gold px-5 py-2.5 text-xs font-bold"
+          >
+            Switch to Underwriter Persona
+          </button>
+          <Link to="/applicants/APP-SURESH/health-card?demo=true">
+            <button className="btn-action px-5 py-2.5 text-xs font-bold">
+              View My Own Health Card
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const displayScore = whatIfScore || score;
   const strengths = displayScore?.contributing_factors?.filter((f: any) => f.shap_value > 0) || [];
   const risks = displayScore?.contributing_factors?.filter((f: any) => f.shap_value < 0) || [];
@@ -323,58 +355,64 @@ export default function FinancialHealthCardPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2.5">
-          <button
-            className="btn-action"
-            onClick={handleFetchData}
-            disabled={fetchingData}
-          >
-            <Zap className="h-3.5 w-3.5 text-[var(--accent)]" />
-            {fetchingData ? 'Syncing AA Telemetry...' : 'Fetch AA Telemetry'}
-          </button>
-          <button className="btn-gold" onClick={handleScore} disabled={scoring}>
-            {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
-            {scoring ? 'Computing Score (~45ms)...' : score ? 'Re-run AI Scoring' : 'Execute AI Scoring (~45ms)'}
-          </button>
-        </div>
+        {!isBorrower && (
+          <div className="flex gap-2.5">
+            <button
+              className="btn-action"
+              onClick={handleFetchData}
+              disabled={fetchingData}
+            >
+              <Zap className="h-3.5 w-3.5 text-[var(--accent)]" />
+              {fetchingData ? 'Syncing AA Telemetry...' : 'Fetch AA Telemetry'}
+            </button>
+            <button className="btn-gold" onClick={handleScore} disabled={scoring}>
+              {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+              {scoring ? 'Computing Score (~45ms)...' : score ? 'Re-run AI Scoring' : 'Execute AI Scoring (~45ms)'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Multi-Agent Viz */}
-      <MultiAgentViz activeStage={score ? 'decision' : 'aa'} />
+      {/* Multi-Agent Viz (Underwriter only) */}
+      {!isBorrower && <MultiAgentViz activeStage={score ? 'decision' : 'aa'} />}
 
-      {/* Decision Trail */}
-      {trail.length > 0 && <DecisionTrail stages={trail} />}
+      {/* Decision Trail (Underwriter only) */}
+      {!isBorrower && trail.length > 0 && <DecisionTrail stages={trail} />}
 
       {!displayScore && (
         <div className="glass-card p-10 border border-[var(--border)] text-center max-w-2xl mx-auto my-8">
           <div className="w-16 h-16 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
             <Activity className="h-8 w-8" />
           </div>
-          <span className="eyebrow">STEP 1: TELEMETRY & SCORING PENDING</span>
+          <span className="eyebrow">{isBorrower ? 'EVALUATION IN PROGRESS' : 'STEP 1: TELEMETRY & SCORING PENDING'}</span>
           <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mt-1 mb-2">
-            No XGBoost Score Computed Yet
+            {isBorrower ? 'Your 360° Health Card is Being Synthesized' : 'No XGBoost Score Computed Yet'}
           </h3>
           <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto font-sans leading-relaxed">
-            This applicant's Account Aggregator (AA) telemetry is either pending sync or has not been scored yet. Click below to pull 12-month bank statements and execute sub-second credit scoring.
+            {isBorrower
+              ? 'Our automated AI system is processing your Account Aggregator bank telemetry and GST filings. Please check back shortly.'
+              : 'This applicant\'s Account Aggregator (AA) telemetry is either pending sync or has not been scored yet. Click below to pull 12-month bank statements and execute sub-second credit scoring.'}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              className="btn-action px-5 py-2.5 text-xs flex items-center gap-2"
-              onClick={handleFetchData}
-              disabled={fetchingData}
-            >
-              <Zap className="h-4 w-4 text-[var(--accent)]" />
-              {fetchingData ? 'Syncing AA Telemetry...' : '1. Pull AA Telemetry'}
-            </button>
-            <button
-              className="btn-gold px-6 py-2.5 text-xs flex items-center gap-2"
-              onClick={handleScore}
-              disabled={scoring}
-            >
-              {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
-              {scoring ? 'Computing Score (~45ms)...' : '2. Execute AI Scoring (~45ms)'}
-            </button>
-          </div>
+          {!isBorrower && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                className="btn-action px-5 py-2.5 text-xs flex items-center gap-2"
+                onClick={handleFetchData}
+                disabled={fetchingData}
+              >
+                <Zap className="h-4 w-4 text-[var(--accent)]" />
+                {fetchingData ? 'Syncing AA Telemetry...' : '1. Pull AA Telemetry'}
+              </button>
+              <button
+                className="btn-gold px-6 py-2.5 text-xs flex items-center gap-2"
+                onClick={handleScore}
+                disabled={scoring}
+              >
+                {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+                {scoring ? 'Computing Score (~45ms)...' : '2. Execute AI Scoring (~45ms)'}
+              </button>
+            </div>
+          )}
           <div className="mt-6 pt-6 border-t border-[var(--border)] text-[11px] font-mono text-[var(--text-secondary)] flex items-center justify-center gap-2">
             <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
             DEPA / Sahamati Compliant • Zero-Knowledge Data Storage
@@ -421,47 +459,53 @@ export default function FinancialHealthCardPage() {
 
           {/* SHAP + Offers */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="glass-card p-6 border border-[var(--border)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
-                <div>
-                  <span className="eyebrow">EXPLAINABILITY // LOCAL SHAP</span>
-                  <h3 className="text-base font-serif text-[var(--text-primary)]">SHAP Explainer <span className="italic">Matrix</span>.</h3>
-                </div>
-                <span className="text-xs font-mono text-[var(--text-secondary)]">LOCAL EXPLANATIONS</span>
-              </div>
-              <SHAPWaterfall factors={displayScore.contributing_factors || []} />
-              <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#10B981] font-bold mb-2.5 flex items-center gap-1.5">
-                    <TrendingUp className="h-3.5 w-3.5" /> Key Drivers (+)
+            {!isBorrower && (
+              <div className="glass-card p-6 border border-[var(--border)]">
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
+                  <div>
+                    <span className="eyebrow">EXPLAINABILITY // LOCAL SHAP</span>
+                    <h3 className="text-base font-serif text-[var(--text-primary)]">SHAP Explainer <span className="italic">Matrix</span>.</h3>
                   </div>
-                  {strengths.length > 0 ? strengths.slice(0, 3).map((f: any) => (
-                    <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                      {f.feature.replace(/_/g, ' ')}: <span className="text-[#10B981] font-bold">+{f.shap_value.toFixed(4)}</span>
-                    </div>
-                  )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No positive determinants</p>}
+                  <span className="text-xs font-mono text-[var(--text-secondary)]">LOCAL EXPLANATIONS</span>
                 </div>
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#F43F5E] font-bold mb-2.5 flex items-center gap-1.5">
-                    <TrendingDown className="h-3.5 w-3.5" /> Key Drivers (-)
-                  </div>
-                  {risks.length > 0 ? risks.slice(0, 3).map((f: any) => (
-                    <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                      {f.feature.replace(/_/g, ' ')}: <span className="text-[#F43F5E] font-bold">{f.shap_value.toFixed(4)}</span>
+                <SHAPWaterfall factors={displayScore.contributing_factors || []} />
+                <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#10B981] font-bold mb-2.5 flex items-center gap-1.5">
+                      <TrendingUp className="h-3.5 w-3.5" /> Key Drivers (+)
                     </div>
-                  )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No risk determinants</p>}
+                    {strengths.length > 0 ? strengths.slice(0, 3).map((f: any) => (
+                      <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
+                        {f.feature.replace(/_/g, ' ')}: <span className="text-[#10B981] font-bold">+{f.shap_value.toFixed(4)}</span>
+                      </div>
+                    )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No positive determinants</p>}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#F43F5E] font-bold mb-2.5 flex items-center gap-1.5">
+                      <TrendingDown className="h-3.5 w-3.5" /> Key Drivers (-)
+                    </div>
+                    {risks.length > 0 ? risks.slice(0, 3).map((f: any) => (
+                      <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
+                        {f.feature.replace(/_/g, ' ')}: <span className="text-[#F43F5E] font-bold">{f.shap_value.toFixed(4)}</span>
+                      </div>
+                    )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No risk determinants</p>}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <LoanOfferCarousel offers={offers} />
+            <div className={isBorrower ? 'lg:col-span-2' : ''}>
+              <LoanOfferCarousel offers={offers} />
+            </div>
           </div>
 
-          {/* What-If Simulator */}
-          <WhatIfSimulator
-            initialValues={whatIfFeatures}
-            onChange={handleWhatIfChange}
-          />
+          {/* What-If Simulator (Underwriter only) */}
+          {!isBorrower && (
+            <WhatIfSimulator
+              initialValues={whatIfFeatures}
+              onChange={handleWhatIfChange}
+            />
+          )}
 
           {/* XAI + Arth-Mitra */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -473,7 +517,7 @@ export default function FinancialHealthCardPage() {
                     <BrainCircuit className="h-4 w-4 text-[var(--accent)]" /> XAI Narrative <span className="italic">Dossier</span>.
                   </h3>
                 </div>
-                {xai && (
+                {!isBorrower && xai && (
                   <button
                     className="btn-action"
                     onClick={handleGenerateXAI}
@@ -499,26 +543,29 @@ export default function FinancialHealthCardPage() {
                   <BrainCircuit className="h-10 w-10 mx-auto mb-3 text-[var(--accent)] opacity-80" />
                   <h4 className="text-sm font-serif font-bold text-[var(--text-primary)] mb-1.5">Step 2: AI Narrative & Audio Synthesis</h4>
                   <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto mb-5 font-sans">
-                    XGBoost numeric credit scoring completed deterministically in {displayScore.inference_ms || 45}ms. 
-                    Invoke NVIDIA Nemotron Ultra to generate a cross-checked, vernacular explanation and IndicTTS audio.
+                    {isBorrower
+                      ? 'AI credit determination synthesis in progress. Your vernacular explanation will be ready shortly.'
+                      : `XGBoost numeric credit scoring completed deterministically in ${displayScore.inference_ms || 45}ms. Invoke NVIDIA Nemotron Ultra to generate a cross-checked, vernacular explanation and IndicTTS audio.`}
                   </p>
-                  <button
-                    className="btn-gold px-5 py-2.5 text-xs mx-auto flex items-center justify-center"
-                    onClick={handleGenerateXAI}
-                    disabled={generatingXAI}
-                  >
-                    {generatingXAI ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                        Synthesizing XAI Narrative (~2-3s)...
-                      </>
-                    ) : (
-                      <>
-                        <BrainCircuit className="h-3.5 w-3.5 mr-2" />
-                        Generate AI Narrative & Audio Explanation
-                      </>
-                    )}
-                  </button>
+                  {!isBorrower && (
+                    <button
+                      className="btn-gold px-5 py-2.5 text-xs mx-auto flex items-center justify-center"
+                      onClick={handleGenerateXAI}
+                      disabled={generatingXAI}
+                    >
+                      {generatingXAI ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                          Synthesizing XAI Narrative (~2-3s)...
+                        </>
+                      ) : (
+                        <>
+                          <BrainCircuit className="h-3.5 w-3.5 mr-2" />
+                          Generate AI Narrative & Audio Explanation
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
