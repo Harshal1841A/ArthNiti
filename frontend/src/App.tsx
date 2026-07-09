@@ -70,6 +70,7 @@ export default function App() {
                         }
                       />
                       <Route path="/applicants/:id" element={<FinancialHealthCardPage />} />
+                      <Route path="/applicants/:id/health-card" element={<FinancialHealthCardPage />} />
                       <Route
                         path="/reviews"
                         element={
