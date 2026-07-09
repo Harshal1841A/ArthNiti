@@ -119,8 +119,8 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                 <motion.div
                   key={index}
                   onClick={() => setSelectedIndex(index)}
-                  className={`flex-shrink-0 w-[290px] min-h-[380px] rounded-xl border p-5 cursor-pointer transition-all duration-300 snap-start flex flex-col justify-between shadow-sm ${
-                    isSelected ? 'border-[var(--accent-emerald)]/70 bg-[var(--accent-emerald)]/5 ring-1 ring-[var(--accent-emerald)]/30' : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--border-subtle)]'
+                  className={`flex-shrink-0 w-[290px] min-h-[380px] rounded-xl border p-5 cursor-pointer transition-all duration-300 snap-start flex flex-col justify-between ${
+                    isSelected ? 'card-surface-elevated border-[var(--accent-emerald)]/70 ring-1 ring-[var(--accent-emerald)]/30' : 'card-surface-base hover:border-[var(--text-secondary)]'
                   }`}
                   whileHover={{ y: -3 }}
                   animate={isSelected ? { scale: 1.01 } : { scale: 1 }}
@@ -133,8 +133,8 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                           {LENDER_ICONS[offer.lender_type]}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{offer.lender_name}</div>
-                          <div className="text-[10px] font-mono text-[var(--text-secondary)] uppercase">{offer.lender_type}</div>
+                          <div className="text-sm font-bold text-[var(--text-primary)] tracking-tight font-sans">{offer.lender_name}</div>
+                          <div className="text-xs font-sans text-[var(--text-secondary)] uppercase font-semibold">{offer.lender_type}</div>
                         </div>
                       </div>
                       {isSelected && (
@@ -149,33 +149,33 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                       <div className="text-3xl font-bold font-mono tracking-tight leading-none" style={{ color }}>
                         {offer.interest_rate_annual}%
                       </div>
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] mt-1">Annual Percentage Rate</div>
+                      <div className="text-xs font-sans uppercase tracking-wider text-[var(--text-secondary)] mt-1 font-semibold">Annual Percentage Rate</div>
                     </div>
 
                     {/* Details */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
-                        <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Monthly EMI</div>
+                        <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Monthly EMI</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{offer.emi.toLocaleString()}</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
-                        <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Tenure</div>
+                        <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Tenure</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.tenure_months} MO</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
-                        <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Limit</div>
+                        <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Limit</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{(offer.max_amount / 100000).toFixed(1)}L</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
-                        <div className="text-[9px] font-mono uppercase text-[var(--text-secondary)]">Turnaround</div>
+                        <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Turnaround</div>
                         <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.disbursement_days} DAYS</div>
                       </div>
                     </div>
 
                     {/* Features */}
-                    <div className="flex flex-wrap gap-1 pt-1">
+                    <div className="flex flex-wrap gap-1.5 pt-1">
                       {offer.features.map((f, i) => (
-                        <span key={i} className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-secondary)] uppercase">{f}</span>
+                        <span key={i} className="text-[11px] font-sans font-semibold px-2.5 py-0.5 rounded-md border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-secondary)] uppercase">{f}</span>
                       ))}
                     </div>
                   </div>
@@ -185,13 +185,13 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                     <button
                       type="button"
                       onClick={(e) => handleSelectBid(offer, index, e)}
-                      className={`w-full py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                      className={`w-full py-3 rounded-xl text-xs font-sans font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
                         isThisBidAccepted && bidStage === 'disbursed'
-                          ? 'bg-[#10B981] text-white font-bold shadow-md ring-2 ring-[#10B981]/50'
+                          ? 'bg-[var(--accent-emerald)] text-white font-extrabold shadow-lg ring-2 ring-[var(--accent-emerald)]/50'
                           : isThisBidAccepted && bidStage === 'signing'
-                          ? 'bg-[var(--border-subtle)] text-[var(--accent)] font-bold animate-pulse'
+                          ? 'bg-[var(--border-subtle)] text-[var(--accent)] font-extrabold animate-pulse'
                           : isSelected
-                          ? 'bg-[var(--accent-emerald)] text-black font-bold shadow-md hover:opacity-90'
+                          ? 'bg-[var(--accent-emerald)] text-black font-extrabold shadow-lg hover:opacity-95'
                           : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--border-subtle)]'
                       }`}
                     >
