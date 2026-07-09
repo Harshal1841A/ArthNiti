@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Loader2, ArrowLeft, Zap, BrainCircuit, Volume2, AlertTriangle, CheckCircle2,
@@ -98,7 +98,29 @@ export default function FinancialHealthCardPage() {
   const isBorrower = currentPersona === 'applicant';
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const isDemo = searchParams.has('demo') || Boolean(id?.startsWith('DEMO-') || id?.startsWith('APP-'));
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'sanction' | 'xai' | 'all'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'sanction' || location.hash.includes('sanction')) return 'sanction';
+    if (tabParam === 'xai') return 'xai';
+    if (tabParam === 'all') return 'all';
+    return 'overview';
+  });
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'sanction' || location.hash.includes('sanction')) {
+      setActiveTab('sanction');
+    } else if (tabParam === 'xai') {
+      setActiveTab('xai');
+    } else if (tabParam === 'all') {
+      setActiveTab('all');
+    } else if (tabParam === 'overview') {
+      setActiveTab('overview');
+    }
+  }, [searchParams, location.hash]);
 
   const [applicant, setApplicant] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
@@ -468,171 +490,225 @@ export default function FinancialHealthCardPage() {
 
       {displayScore && (
         <>
-          {/* Score + Card Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <FinancialHealthCard
-              score={displayScore.score}
-              tier={displayScore.tier}
-              businessName={applicant.business_name}
-              city={applicant.city}
-              industry={applicant.industry}
-              isNTC={!applicant.has_bureau_record}
-              modelVersion={displayScore.model_version || 'xgb_model'}
-              inferenceMs={displayScore.inference_ms}
-            />
-            <div className="glass-card p-6 flex flex-col items-center justify-center border border-[var(--border)]">
-              <ScoreGauge score={displayScore.score} tier={displayScore.tier} size={220} />
-              {deltaScore !== 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`mt-4 text-xs font-bold font-mono px-3 py-1 rounded border ${deltaScore > 0 ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30' : 'bg-[#F43F5E]/10 text-[#F43F5E] border-[#F43F5E]/30'}`}
-                >
-                  SIMULATION DELTA: {deltaScore > 0 ? '+' : ''}{deltaScore} PTS
-                </motion.div>
+          {/* Page View / Section Switcher */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4 mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
+                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+              }`}
+            >
+              <Activity className="h-4 w-4" /> 1. 360° Health Card & Telemetry
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('sanction')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activeTab === 'sanction'
+                  ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
+                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+              }`}
+            >
+              <Zap className="h-4 w-4" /> 2. Sanction Letter & OCEN Offers ({offers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('xai')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activeTab === 'xai'
+                  ? 'bg-[var(--accent)] text-[#0A0B0F] shadow-sm'
+                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+              }`}
+            >
+              <Volume2 className="h-4 w-4" /> 3. AI Narrative & Arth-Mitra Voice
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('all')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold ml-auto transition-all cursor-pointer ${
+                activeTab === 'all'
+                  ? 'bg-[var(--surface-raised)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'
+              }`}
+            >
+              View All Sections
+            </button>
+          </div>
+
+          {/* Overview Tab: Score + Card Row + SHAP + What-If */}
+          {(activeTab === 'overview' || activeTab === 'all') && (
+            <div className="space-y-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FinancialHealthCard
+                  score={displayScore.score}
+                  tier={displayScore.tier}
+                  businessName={applicant.business_name}
+                  city={applicant.city}
+                  industry={applicant.industry}
+                  isNTC={!applicant.has_bureau_record}
+                  modelVersion={displayScore.model_version || 'xgb_model'}
+                  inferenceMs={displayScore.inference_ms}
+                />
+                <div className="glass-card p-6 flex flex-col items-center justify-center border border-[var(--border)]">
+                  <ScoreGauge score={displayScore.score} tier={displayScore.tier} size={220} />
+                  {deltaScore !== 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-4 text-xs font-bold font-mono px-3 py-1 rounded border ${deltaScore > 0 ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30' : 'bg-[#F43F5E]/10 text-[#F43F5E] border-[#F43F5E]/30'}`}
+                    >
+                      SIMULATION DELTA: {deltaScore > 0 ? '+' : ''}{deltaScore} PTS
+                    </motion.div>
+                  )}
+                  <div className="mt-5 text-center">
+                    <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-mono font-semibold ${
+                      routing?.routing === 'REJECT' ? 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30' :
+                      routing?.requires_review ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30'
+                    }`}>
+                      {routing?.routing === 'REJECT' ? <AlertTriangle className="h-4 w-4" /> : routing?.requires_review ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {routing?.routing === 'STRAIGHT_THROUGH' ? 'Straight-Through Underwriting Approval' : routing?.routing === 'REJECT' ? 'Adverse Action Notice (Declined)' : 'Enhanced Human Underwriting Review Required'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!isBorrower && (
+                <div className="glass-card p-6 border border-[var(--border)]">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
+                    <div>
+                      <span className="eyebrow">EXPLAINABILITY // LOCAL SHAP</span>
+                      <h3 className="text-base font-serif text-[var(--text-primary)]">SHAP Explainer <span className="italic">Matrix</span>.</h3>
+                    </div>
+                    <span className="text-xs font-mono text-[var(--text-secondary)]">LOCAL EXPLANATIONS</span>
+                  </div>
+                  <SHAPWaterfall factors={displayScore.contributing_factors || []} />
+                  <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#10B981] font-bold mb-2.5 flex items-center gap-1.5">
+                        <TrendingUp className="h-3.5 w-3.5" /> Key Drivers (+)
+                      </div>
+                      {strengths.length > 0 ? strengths.slice(0, 3).map((f: any) => (
+                        <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
+                          {f.feature.replace(/_/g, ' ')}: <span className="text-[#10B981] font-bold">+{f.shap_value.toFixed(4)}</span>
+                        </div>
+                      )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No positive determinants</p>}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#F43F5E] font-bold mb-2.5 flex items-center gap-1.5">
+                        <TrendingDown className="h-3.5 w-3.5" /> Key Drivers (-)
+                      </div>
+                      {risks.length > 0 ? risks.slice(0, 3).map((f: any) => (
+                        <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
+                          {f.feature.replace(/_/g, ' ')}: <span className="text-[#F43F5E] font-bold">{f.shap_value.toFixed(4)}</span>
+                        </div>
+                      )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No risk determinants</p>}
+                    </div>
+                  </div>
+                </div>
               )}
-              <div className="mt-5 text-center">
-                <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-mono font-semibold ${
-                  routing?.routing === 'REJECT' ? 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30' :
-                  routing?.requires_review ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30'
-                }`}>
-                  {routing?.routing === 'REJECT' ? <AlertTriangle className="h-4 w-4" /> : routing?.requires_review ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                  {routing?.routing === 'STRAIGHT_THROUGH' ? 'Straight-Through Underwriting Approval' : routing?.routing === 'REJECT' ? 'Adverse Action Notice (Declined)' : 'Enhanced Human Underwriting Review Required'}
-                </div>
-              </div>
+
+              {/* What-If Simulator (Underwriter only) */}
+              {!isBorrower && (
+                <WhatIfSimulator
+                  initialValues={whatIfFeatures}
+                  onChange={handleWhatIfChange}
+                />
+              )}
             </div>
-          </div>
-
-          {/* SHAP + Offers */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {!isBorrower && (
-              <div className="glass-card p-6 border border-[var(--border)]">
-                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
-                  <div>
-                    <span className="eyebrow">EXPLAINABILITY // LOCAL SHAP</span>
-                    <h3 className="text-base font-serif text-[var(--text-primary)]">SHAP Explainer <span className="italic">Matrix</span>.</h3>
-                  </div>
-                  <span className="text-xs font-mono text-[var(--text-secondary)]">LOCAL EXPLANATIONS</span>
-                </div>
-                <SHAPWaterfall factors={displayScore.contributing_factors || []} />
-                <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
-                  <div>
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#10B981] font-bold mb-2.5 flex items-center gap-1.5">
-                      <TrendingUp className="h-3.5 w-3.5" /> Key Drivers (+)
-                    </div>
-                    {strengths.length > 0 ? strengths.slice(0, 3).map((f: any) => (
-                      <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                        {f.feature.replace(/_/g, ' ')}: <span className="text-[#10B981] font-bold">+{f.shap_value.toFixed(4)}</span>
-                      </div>
-                    )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No positive determinants</p>}
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#F43F5E] font-bold mb-2.5 flex items-center gap-1.5">
-                      <TrendingDown className="h-3.5 w-3.5" /> Key Drivers (-)
-                    </div>
-                    {risks.length > 0 ? risks.slice(0, 3).map((f: any) => (
-                      <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                        {f.feature.replace(/_/g, ' ')}: <span className="text-[#F43F5E] font-bold">{f.shap_value.toFixed(4)}</span>
-                      </div>
-                    )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No risk determinants</p>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={isBorrower ? 'lg:col-span-2' : ''}>
-              <LoanOfferCarousel offers={offers} />
-            </div>
-          </div>
-
-          {/* What-If Simulator (Underwriter only) */}
-          {!isBorrower && (
-            <WhatIfSimulator
-              initialValues={whatIfFeatures}
-              onChange={handleWhatIfChange}
-            />
           )}
 
-          {/* XAI + Arth-Mitra */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="glass-card p-6 border border-[var(--border)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
-                <div>
-                  <span className="eyebrow">SYNTHESIS // NEMOTRON ULTRA</span>
-                  <h3 className="text-base font-serif text-[var(--text-primary)] flex items-center gap-2">
-                    <BrainCircuit className="h-4 w-4 text-[var(--accent)]" /> XAI Narrative <span className="italic">Dossier</span>.
-                  </h3>
-                </div>
-                {!isBorrower && xai && (
-                  <button
-                    className="btn-action"
-                    onClick={handleGenerateXAI}
-                    disabled={generatingXAI}
-                  >
-                    {generatingXAI ? 'Synthesizing...' : 'Regenerate Narrative'}
-                  </button>
-                )}
-              </div>
-              {xai ? (
-                <div className="space-y-4">
-                  <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono font-semibold ${
-                    xai.cross_check_passed ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30' : 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30'
-                  }`}>
-                    {xai.cross_check_passed ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    {xai.cross_check_passed ? 'Numeric Fact-Check Verified' : 'Hallucination / Unsupported Claims Flagged'}
+          {/* Sanction Tab: LoanOfferCarousel */}
+          {(activeTab === 'sanction' || activeTab === 'all') && (
+            <div className="space-y-6 mb-8" id="sanction-section">
+              <LoanOfferCarousel offers={offers} />
+            </div>
+          )}
+
+          {/* XAI Narrative & Voice Tab */}
+          {(activeTab === 'xai' || activeTab === 'all') && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" id="xai-section">
+              <div className="glass-card p-6 border border-[var(--border)]">
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
+                  <div>
+                    <span className="eyebrow">SYNTHESIS // NEMOTRON ULTRA</span>
+                    <h3 className="text-base font-serif text-[var(--text-primary)] flex items-center gap-2">
+                      <BrainCircuit className="h-4 w-4 text-[var(--accent)]" /> XAI Narrative <span className="italic">Dossier</span>.
+                    </h3>
                   </div>
-                  <p className="text-sm text-[var(--text-primary)] leading-relaxed bg-[var(--surface)] rounded-xl p-5 border border-[var(--border)] font-serif">{xai.narrative}</p>
-                  <div className="text-[10px] font-mono text-[var(--text-secondary)]">Synthesized by Nemotron Ultra • Audited by SHAP Telemetry Engine</div>
-                </div>
-              ) : (
-                <div className="text-center py-8 px-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                  <BrainCircuit className="h-10 w-10 mx-auto mb-3 text-[var(--accent)] opacity-80" />
-                  <h4 className="text-sm font-serif font-bold text-[var(--text-primary)] mb-1.5">Step 2: AI Narrative & Audio Synthesis</h4>
-                  <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto mb-5 font-sans">
-                    {isBorrower
-                      ? 'AI credit determination synthesis in progress. Your vernacular explanation will be ready shortly.'
-                      : `XGBoost numeric credit scoring completed deterministically in ${displayScore.inference_ms || 45}ms. Invoke NVIDIA Nemotron Ultra to generate a cross-checked, vernacular explanation and IndicTTS audio.`}
-                  </p>
-                  {!isBorrower && (
+                  {!isBorrower && xai && (
                     <button
-                      className="btn-gold px-5 py-2.5 text-xs mx-auto flex items-center justify-center"
+                      className="btn-action"
                       onClick={handleGenerateXAI}
                       disabled={generatingXAI}
                     >
-                      {generatingXAI ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                          Synthesizing XAI Narrative (~2-3s)...
-                        </>
-                      ) : (
-                        <>
-                          <BrainCircuit className="h-3.5 w-3.5 mr-2" />
-                          Generate AI Narrative & Audio Explanation
-                        </>
-                      )}
+                      {generatingXAI ? 'Synthesizing...' : 'Regenerate Narrative'}
                     </button>
                   )}
                 </div>
-              )}
-            </div>
-
-            <div className="glass-card p-6 border border-[var(--border)] space-y-4">
-              <div className="border-b border-[var(--border)] pb-3 mb-4">
-                <span className="eyebrow">VERNACULAR // AUDIO</span>
-                <h3 className="text-base font-serif text-[var(--text-primary)] flex items-center gap-2">
-                  <Volume2 className="h-4 w-4 text-[#10B981]" /> Arth-Mitra Voice <span className="italic">Interface</span>.
-                </h3>
+                {xai ? (
+                  <div className="space-y-4">
+                    <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono font-semibold ${
+                      xai.cross_check_passed ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30' : 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30'
+                    }`}>
+                      {xai.cross_check_passed ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                      {xai.cross_check_passed ? 'Numeric Fact-Check Verified' : 'Hallucination / Unsupported Claims Flagged'}
+                    </div>
+                    <p className="text-sm text-[var(--text-primary)] leading-relaxed bg-[var(--surface)] rounded-xl p-5 border border-[var(--border)] font-serif">{xai.narrative}</p>
+                    <div className="text-[10px] font-mono text-[var(--text-secondary)]">Synthesized by Nemotron Ultra • Audited by SHAP Telemetry Engine</div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 px-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                    <BrainCircuit className="h-10 w-10 mx-auto mb-3 text-[var(--accent)] opacity-80" />
+                    <h4 className="text-sm font-serif font-bold text-[var(--text-primary)] mb-1.5">Step 2: AI Narrative & Audio Synthesis</h4>
+                    <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto mb-5 font-sans">
+                      {isBorrower
+                        ? 'AI credit determination synthesis in progress. Your vernacular explanation will be ready shortly.'
+                        : `XGBoost numeric credit scoring completed deterministically in ${displayScore.inference_ms || 45}ms. Invoke NVIDIA Nemotron Ultra to generate a cross-checked, vernacular explanation and IndicTTS audio.`}
+                    </p>
+                    {!isBorrower && (
+                      <button
+                        className="btn-gold px-5 py-2.5 text-xs mx-auto flex items-center justify-center"
+                        onClick={handleGenerateXAI}
+                        disabled={generatingXAI}
+                      >
+                        {generatingXAI ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            Synthesizing XAI Narrative (~2-3s)...
+                          </>
+                        ) : (
+                          <>
+                            <BrainCircuit className="h-3.5 w-3.5 mr-2" />
+                            Generate AI Narrative & Audio Explanation
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              <ArthMitraPlayer
-                narrativeText={xai?.narrative || ''}
-                language={language}
-                onLanguageChange={setLanguage}
-              />
-              <p className="text-[11px] font-mono text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border)] pt-3">
-                Arth-Mitra explains credit determinations directly to MSME borrowers in native regional dialects via IndicTTS / Web Audio API fallback.
-              </p>
+
+              <div className="glass-card p-6 border border-[var(--border)] space-y-4">
+                <div className="border-b border-[var(--border)] pb-3 mb-4">
+                  <span className="eyebrow">VERNACULAR // AUDIO</span>
+                  <h3 className="text-base font-serif text-[var(--text-primary)] flex items-center gap-2">
+                    <Volume2 className="h-4 w-4 text-[#10B981]" /> Arth-Mitra Voice <span className="italic">Interface</span>.
+                  </h3>
+                </div>
+                <ArthMitraPlayer
+                  narrativeText={xai?.narrative || ''}
+                  language={language}
+                  onLanguageChange={setLanguage}
+                />
+                <p className="text-[11px] font-mono text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border)] pt-3">
+                  Arth-Mitra explains credit determinations directly to MSME borrowers in native regional dialects via IndicTTS / Web Audio API fallback.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
