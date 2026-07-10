@@ -8,6 +8,7 @@ SECURITY FIX (v1.4): Added rate limiting (30/min per IP) to score endpoint.
 """
 
 import json
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
@@ -21,6 +22,16 @@ from backend.database.models import Applicant, NormalizedFeatures, Score
 from backend.limiter import limiter
 
 router = APIRouter()
+
+
+def _safe_json(text: Any) -> list:
+    """BUG-A4/A5 FIX: Guard against NULL or malformed contributing_factors_json."""
+    if not text:
+        return []
+    try:
+        return json.loads(text)
+    except Exception:
+        return []
 
 
 @router.post("/{applicant_id}", response_model=ScoreResponse)
@@ -125,7 +136,7 @@ async def list_scores(
             applicant_id=score.applicant_id,
             score=score.score,
             tier=score.tier,
-            contributing_factors=json.loads(score.contributing_factors_json),
+            contributing_factors=_safe_json(score.contributing_factors_json),
             inference_ms=score.inference_ms,
             data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
             is_synthetic_applicant=applicant.is_synthetic if applicant else True,
@@ -151,7 +162,7 @@ async def get_score(
         applicant_id=score.applicant_id,
         score=score.score,
         tier=score.tier,
-        contributing_factors=json.loads(score.contributing_factors_json),
+        contributing_factors=_safe_json(score.contributing_factors_json),
         inference_ms=score.inference_ms,
         data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
         is_synthetic_applicant=applicant.is_synthetic if applicant else True,

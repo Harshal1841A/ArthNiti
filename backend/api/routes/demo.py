@@ -125,13 +125,25 @@ async def seed_demo_personas_db(db: AsyncSession) -> int:
     if not _settings.DEMO_MODE:
         return 0
 
-    # NEW-10 FIX: Fast-path check to avoid 25 serial queries on every cold start when data exists
+    # BUG-B7 FIX: Fast-path must also verify ReviewQueue rows exist for WATCH/HIGH_RISK
+    # personas. Previously only Score existence was checked — a partial DB wipe could
+    # leave scores intact but review queue empty, and this fast-path would return early
+    # silently, leaving the underwriting queue always empty.
     persona_ids = [p["applicant"]["id"] for p in DEMO_PERSONAS]
-    res = await db.execute(
+    watch_high_risk_ids = [
+        p["applicant"]["id"] for p in DEMO_PERSONAS
+        if p["score_result"]["tier"] in ("WATCH", "HIGH_RISK") or p.get("routing", {}).get("requires_review")
+    ]
+    scores_res = await db.execute(
         select(func.count(func.distinct(Score.applicant_id))).where(Score.applicant_id.in_(persona_ids))
     )
-    if res.scalar() == len(DEMO_PERSONAS):
-        return len(DEMO_PERSONAS)
+    if scores_res.scalar() == len(DEMO_PERSONAS):
+        # Verify review queue completeness too
+        rq_res = await db.execute(
+            select(func.count(func.distinct(ReviewQueue.applicant_id))).where(ReviewQueue.applicant_id.in_(watch_high_risk_ids))
+        )
+        if rq_res.scalar() >= len(watch_high_risk_ids):
+            return len(DEMO_PERSONAS)
 
     for persona in DEMO_PERSONAS:
         app = persona["applicant"]

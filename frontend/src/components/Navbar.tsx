@@ -26,11 +26,14 @@ export default function Navbar() {
   const handleNavbarPersonaChange = (key: PersonaKey) => {
     setPersona(key);
     if (key === 'applicant') {
+      // BUG-A7/A8 FIX: Guard must redirect unless on the borrower's OWN profile (APP-SURESH).
+      // Previously any APP-* path was excluded, letting borrowers see other MSMEs' data.
+      const isOwnProfile = pathname.includes('APP-SURESH');
       if (
         pathname.startsWith('/reviews') ||
         pathname.startsWith('/adapters') ||
         pathname === '/demo' ||
-        (pathname.startsWith('/applicants') && !pathname.includes('DEMO-') && !pathname.includes('APP-'))
+        (pathname.startsWith('/applicants') && !isOwnProfile)
       ) {
         navigate('/dashboard');
       }
@@ -42,9 +45,20 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  // BUG-B1 FIX: Track whether we've fetched at least once to avoid re-firing the
+  // full (non-silent) fetch on every persona switch if alerts are already loaded.
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
-    if (currentPersona === 'applicant') return;
-    fetchReviews(false);
+    if (currentPersona === 'applicant') {
+      hasFetchedRef.current = false;
+      return;
+    }
+    // On first mount or when switching from applicant → underwriter, do a full fetch.
+    // If already loaded (persona switch between admin/officer), do a silent refresh.
+    const isFirstFetch = !hasFetchedRef.current;
+    fetchReviews(!isFirstFetch);
+    hasFetchedRef.current = true;
     // Auto refresh every 60 seconds silently
     const interval = setInterval(() => fetchReviews(true), 60000);
     return () => clearInterval(interval);
@@ -66,36 +80,10 @@ export default function Navbar() {
     try {
       const res = await api.get('/v1/reviews?limit=20');
       setAlerts(res.data || []);
-    } catch (e) {
-      setAlerts([
-        {
-          review_id: "REV-9012",
-          applicant_id: "MSME-4021",
-          business_name: "Arjun Textiles & Co",
-          score_id: "SCR-8812",
-          score: 620,
-          tier: "WATCH",
-          status: "pending",
-          contributing_factors: [
-            { feature: "debt_to_equity", shap_value: -0.142 },
-            { feature: "cash_flow_volatility", shap_value: -0.089 }
-          ],
-          created_at: new Date().toISOString()
-        },
-        {
-          review_id: "REV-9013",
-          applicant_id: "MSME-4089",
-          business_name: "Kaveri Agro Exports",
-          score_id: "SCR-8815",
-          score: 540,
-          tier: "HIGH_RISK",
-          status: "in_review",
-          contributing_factors: [
-            { feature: "bureau_score", shap_value: -0.210 }
-          ],
-          created_at: new Date(Date.now() - 3600000).toISOString()
-        }
-      ]);
+    } catch {
+      // BUG-A1 FIX: On error, KEEP existing alerts — do not overwrite with hardcoded
+      // mock data. Transient network errors should not inject fake "Arjun Textiles"
+      // alerts that mislead the underwriter. Only clear loading state.
     } finally {
       setLoading(false);
     }
@@ -109,7 +97,8 @@ export default function Navbar() {
     ...(pathname === '/applicants' ? [{ label: 'MSME Profiles' }] : []),
     ...(pathname === '/applicants/new' ? [{ label: 'MSME Profiles', to: '/applicants' }, { label: 'New Application' }] : []),
     ...(pathname.startsWith('/applicants/') && !pathname.includes('/new') ? [{ label: 'MSME Profiles', to: '/applicants' }, { label: 'Profile Details' }] : []),
-    ...(pathname === '/reviews' ? [{ label: 'Underwriting' }] : []),
+    // BUG-C6 FIX: Breadcrumb for /reviews was showing only 'Underwriting' — now shows full path.
+    ...(pathname === '/reviews' ? [{ label: 'Underwriting', to: '/reviews' }, { label: 'Review Queue' }] : []),
     ...(pathname === '/adapters' ? [{ label: 'System Adapters' }] : []),
   ];
 

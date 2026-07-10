@@ -170,9 +170,13 @@ export default function FinancialHealthCardPage() {
           setRouting(d.routing);
           setOffers((d.loan_offers && d.loan_offers.length > 0) ? d.loan_offers : DEFAULT_FALLBACK_OFFERS);
           setDemoNarratives(d.xai_narrative);
+          // BUG-B4 FIX: Use 'en' as initial language here — language switching is handled
+          // by a separate useEffect below (language, demoNarratives deps) so we don't
+          // capture `language` inside loadData's closure (was a stale-closure bug).
+          const initialNarrative = d.xai_narrative['en'] || Object.values(d.xai_narrative)[0] || '';
           const xaiPayload = {
             xai_id: `DEMO-XAI-${id}`,
-            narrative: d.xai_narrative[language] || d.xai_narrative['en'],
+            narrative: initialNarrative,
             cross_check_passed: true,
             unsupported_claims: [],
           };

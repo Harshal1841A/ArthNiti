@@ -190,7 +190,6 @@ export default function Dashboard() {
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  void error;
   const [animatingAgent] = useState(false);
   const navigate = useNavigate();
 
@@ -252,6 +251,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 font-sans">
+      {/* BUG-B2 FIX: Render errors instead of silently showing 0 values */}
+      {error && (
+        <div className="rounded-xl border border-tier-watch/30 bg-tier-watch/10 px-5 py-3 text-xs font-mono text-tier-watch flex items-center justify-between">
+          <span><span className="font-bold uppercase">Dashboard load error:</span> {error}</span>
+          <button onClick={() => setError('')} className="underline hover:text-[var(--text-primary)] font-bold ml-4">Dismiss</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[var(--border)] pb-6">
         <div>

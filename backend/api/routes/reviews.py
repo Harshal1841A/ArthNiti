@@ -117,6 +117,9 @@ async def assign_review(
     if rev.status == "pending":
         rev.status = "in_review"
     await db.commit()
+    # BUG-A2 FIX: Refresh rev after commit — SQLAlchemy async may read stale in-memory
+    # state if we access rev.* fields after a commit without refreshing from DB.
+    await db.refresh(rev)
 
     applicant = await db.get(Applicant, rev.applicant_id)
     score = await db.get(Score, rev.score_id)
@@ -153,6 +156,8 @@ async def resolve_review(
     rev.status = req.decision
     rev.notes = req.notes
     await db.commit()
+    # BUG-A2 FIX: Refresh rev after commit to avoid stale field reads.
+    await db.refresh(rev)
 
     applicant = await db.get(Applicant, rev.applicant_id)
     score = await db.get(Score, rev.score_id)

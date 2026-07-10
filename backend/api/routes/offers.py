@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,7 +6,7 @@ from backend.api.deps import get_db, verify_api_key
 from backend.config import get_settings
 from backend.adapters.ocen_adapter import generate_offers_for_score
 from backend.data.demo_personas import ALIAS_MAP
-from backend.database.models import Score
+from backend.database.models import Applicant, Score
 
 router = APIRouter()
 _settings = get_settings()
@@ -16,6 +16,11 @@ _settings = get_settings()
 async def get_offers(applicant_id: str, db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
     """Return OCEN loan offers for an applicant based on their latest score."""
     target_id = ALIAS_MAP.get(applicant_id, applicant_id)
+    # BUG-B6 FIX: Validate applicant exists before computing offers.
+    # Previously returned fake score=65/ADEQUATE data for any unknown applicant ID.
+    applicant = await db.get(Applicant, target_id)
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
     # Look up the latest score
     result = await db.execute(
         select(Score)
