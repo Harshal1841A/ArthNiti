@@ -15,7 +15,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       outline: 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] hover:border-[var(--text-secondary)] font-medium',
       ghost: 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] font-medium',
       danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm font-semibold',
-      glow: 'bg-[#10B981] text-white hover:bg-[#10B981]/90 shadow-md shadow-[#10B981]/20 font-semibold',
+      glow: 'bg-tier-strong text-white hover:bg-tier-strong/90 shadow-md shadow-tier-strong/20 font-semibold',
     };
 
     const sizes = {

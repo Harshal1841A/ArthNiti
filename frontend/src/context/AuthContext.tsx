@@ -8,6 +8,12 @@ export interface Persona {
   name: string;
   role: 'ADMIN' | 'CREDIT_OFFICER' | 'APPLICANT';
   title: string;
+  // For the APPLICANT role only: the one applicant record this persona is
+  // allowed to view. A real borrower-facing login would derive this from
+  // their authenticated account, not a hardcoded demo mapping — this is the
+  // demo-scoped equivalent so the role-gating in permissions.ts/RequireRole
+  // has something real to check against instead of just hiding nav links.
+  linkedApplicantId?: string;
 }
 
 export const PERSONAS: Record<PersonaKey, Persona> = {
@@ -31,6 +37,7 @@ export const PERSONAS: Record<PersonaKey, Persona> = {
     name: 'Suresh Patel',
     role: 'APPLICANT',
     title: 'Proprietor, Patel Electronics & Co.',
+    linkedApplicantId: 'APP-SURESH',
   },
 };
 

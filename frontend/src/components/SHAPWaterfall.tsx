@@ -8,7 +8,7 @@ export default function SHAPWaterfall({ factors }: SHAPWaterfallProps) {
   const data = factors.map((f) => ({
     name: f.feature.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     value: f.shap_value,
-    color: f.shap_value > 0 ? '#10B981' : '#F43F5E',
+    color: f.shap_value > 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)',
   }));
 
   const maxAbs = Math.max(...data.map((d) => Math.abs(d.value)), 0.01);

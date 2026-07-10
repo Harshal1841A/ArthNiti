@@ -1,11 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
-
-const TIER_COLORS: Record<string, string> = {
-  STRONG: '#059669',
-  ADEQUATE: '#3b82f6',
-  WATCH: '#f59e0b',
-  HIGH_RISK: '#dc2626',
-};
+import { tierColor } from '@/lib/tierColors';
 
 interface Props {
   data: { tier: string; count: number }[];
@@ -52,7 +46,7 @@ export default function ScoreDistributionChart({ data, height = 260 }: Props) {
         />
         <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={60}>
           {data.map((d) => (
-            <Cell key={d.tier} fill={TIER_COLORS[d.tier] || '#94a3b8'} />
+            <Cell key={d.tier} fill={tierColor(d.tier)} />
           ))}
         </Bar>
       </BarChart>

@@ -58,7 +58,7 @@ export default function ApplicantsList() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 p-6 text-sm text-[#F43F5E] font-mono">
+      <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-6 text-sm text-tier-high-risk font-mono">
         <div className="font-bold mb-1 uppercase tracking-wider">System Exception</div>
         {error}
       </div>
@@ -141,9 +141,9 @@ export default function ApplicantsList() {
                   </td>
                   <td className="py-4 px-6">
                     {a.has_bureau_record ? (
-                      <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30">BUREAU FOUND</span>
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-tier-adequate/15 text-tier-adequate border border-tier-adequate/30">BUREAU FOUND</span>
                     ) : (
-                      <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">THIN FILE (NTC)</span>
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-tier-watch/15 text-tier-watch border border-tier-watch/30">THIN FILE (NTC)</span>
                     )}
                   </td>
                   <td className="py-4 px-6">

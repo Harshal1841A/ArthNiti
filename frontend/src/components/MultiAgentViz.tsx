@@ -104,7 +104,7 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
                 <span className={`block font-sans text-xs tracking-tight ${isActive ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
                   {node.name}
                 </span>
-                <span className={`block font-mono text-[11px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isActive ? 'text-[#10B981] font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
+                <span className={`block font-mono text-[11px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isActive ? 'text-tier-strong font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
                   {isCurrent ? 'ACTIVE...' : isActive ? 'VERIFIED' : 'IDLE'}
                 </span>
               </div>

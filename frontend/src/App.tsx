@@ -4,7 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
-import PersonaGuard from './components/PersonaGuard';
+import PersonaGuard, { ApplicantOwnershipGuard } from './components/PersonaGuard';
 
 import Landing from './pages/Landing';
 
@@ -69,8 +69,22 @@ export default function App() {
                           </PersonaGuard>
                         }
                       />
-                      <Route path="/applicants/:id" element={<FinancialHealthCardPage />} />
-                      <Route path="/applicants/:id/health-card" element={<FinancialHealthCardPage />} />
+                      <Route
+                        path="/applicants/:id"
+                        element={
+                          <ApplicantOwnershipGuard>
+                            <FinancialHealthCardPage />
+                          </ApplicantOwnershipGuard>
+                        }
+                      />
+                      <Route
+                        path="/applicants/:id/health-card"
+                        element={
+                          <ApplicantOwnershipGuard>
+                            <FinancialHealthCardPage />
+                          </ApplicantOwnershipGuard>
+                        }
+                      />
                       <Route
                         path="/reviews"
                         element={

@@ -6,7 +6,14 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        'rounded-xl border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:border-[var(--text-secondary)]/40 hover:shadow-md',
+        // Was a flat 1px border + generic shadow-sm — every other card in the
+        // app already uses the inset-highlight elevation model defined in
+        // index.css (.card-surface-base/.glass-card); this shared primitive
+        // was the one place still bypassing it, which showed up as visible
+        // inconsistency anywhere <Card> was used alongside a hand-styled card.
+        'rounded-xl border border-white/[0.07] bg-[var(--bg-card)] text-[var(--text-primary)] transition-all duration-200',
+        'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_14px_rgba(0,0,0,0.3)]',
+        'hover:border-[var(--text-secondary)]/40 hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.35)]',
         className
       )}
       {...props}

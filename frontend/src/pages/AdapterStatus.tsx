@@ -19,8 +19,8 @@ export default function AdapterStatus() {
   }, []);
 
   const statusConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-    real: { icon: <CheckCircle2 className="h-5 w-5" />, color: 'text-[#10B981]', bg: 'bg-[#10B981]/10 border border-[#10B981]/20' },
-    stub: { icon: <AlertTriangle className="h-5 w-5" />, color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10 border border-[#F59E0B]/20' },
+    real: { icon: <CheckCircle2 className="h-5 w-5" />, color: 'text-tier-strong', bg: 'bg-tier-strong/10 border border-tier-strong/20' },
+    stub: { icon: <AlertTriangle className="h-5 w-5" />, color: 'text-tier-watch', bg: 'bg-tier-watch/10 border border-tier-watch/20' },
     unconfirmed: { icon: <HelpCircle className="h-5 w-5" />, color: 'text-[var(--text-secondary)]', bg: 'bg-[var(--surface)] border border-[var(--border)]' },
   };
 
@@ -69,7 +69,7 @@ export default function AdapterStatus() {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
             <div className="flex items-start gap-3.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-tier-strong/10 border border-tier-strong/20 text-tier-strong">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
@@ -78,7 +78,7 @@ export default function AdapterStatus() {
               </div>
             </div>
             <div className="flex items-start gap-3.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[#F59E0B]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-tier-watch/10 border border-tier-watch/20 text-tier-watch">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>

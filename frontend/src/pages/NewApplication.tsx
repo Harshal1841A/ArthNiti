@@ -86,7 +86,7 @@ export default function NewApplication() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 p-5 text-sm text-[#F43F5E] flex items-start gap-3 font-mono">
+        <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-5 text-sm text-tier-high-risk flex items-start gap-3 font-mono">
           <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           {error}
         </div>
@@ -181,12 +181,12 @@ export default function NewApplication() {
             </div>
             
             <div className="space-y-4 font-sans">
-              <label className={`flex items-start gap-4 rounded-xl border p-5 cursor-pointer transition-all ${useAA ? 'border-[#10B981] bg-[#10B981]/10 shadow-md' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-raised)]'}`}>
-                <input type="checkbox" checked={useAA} onChange={e => setUseAA(e.target.checked)} className="mt-1 h-4 w-4 accent-[#10B981]" />
+              <label className={`flex items-start gap-4 rounded-xl border p-5 cursor-pointer transition-all ${useAA ? 'border-tier-strong bg-tier-strong/10 shadow-md' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-raised)]'}`}>
+                <input type="checkbox" checked={useAA} onChange={e => setUseAA(e.target.checked)} className="mt-1 h-4 w-4 accent-tier-strong" />
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <div className="text-sm font-bold text-[var(--text-primary)]">Account Aggregator Framework (AA)</div>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30">LIVE API</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-tier-strong/20 text-tier-strong border border-tier-strong/30">LIVE API</span>
                   </div>
                   <div className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                     Real Finvu sandbox integration. ReBIT-spec consent protocol with continuous bank telemetry normalization.
@@ -194,12 +194,12 @@ export default function NewApplication() {
                 </div>
               </label>
               
-              <label className={`flex items-start gap-4 rounded-xl border p-5 cursor-pointer transition-all ${useDocumentFallback ? 'border-[#F59E0B] bg-[#F59E0B]/10 shadow-md' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-raised)]'}`}>
-                <input type="checkbox" checked={useDocumentFallback} onChange={e => setUseDocumentFallback(e.target.checked)} className="mt-1 h-4 w-4 accent-[#F59E0B]" />
+              <label className={`flex items-start gap-4 rounded-xl border p-5 cursor-pointer transition-all ${useDocumentFallback ? 'border-tier-watch bg-tier-watch/10 shadow-md' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-raised)]'}`}>
+                <input type="checkbox" checked={useDocumentFallback} onChange={e => setUseDocumentFallback(e.target.checked)} className="mt-1 h-4 w-4 accent-tier-watch" />
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <div className="text-sm font-bold text-[var(--text-primary)]">Document Fallback Pipeline</div>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">ASYNC LLM</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-tier-watch/20 text-tier-watch border border-tier-watch/30">ASYNC LLM</span>
                   </div>
                   <div className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                     Upload unstructured PDF financial statements or GST returns for thin-file applicants with zero API footprint.

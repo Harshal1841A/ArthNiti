@@ -54,7 +54,7 @@ export default function DecisionTrail({ stages }: DecisionTrailProps) {
                   </div>
                   <div className="text-[10px] font-mono text-[var(--text-secondary)] mt-1 max-w-[130px] leading-snug">{stage.detail}</div>
                   {stage.timestamp && (
-                    <div className="text-[9px] text-[var(--text-muted)] mt-1 font-mono">{stage.timestamp.split('T')[1]?.split('+')[0]}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">{stage.timestamp.split('T')[1]?.split('+')[0]}</div>
                   )}
                 </div>
               </div>

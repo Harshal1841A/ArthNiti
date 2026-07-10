@@ -11,6 +11,7 @@ import {
   Users, BrainCircuit, Zap, Play,
 } from 'lucide-react';
 import MultiAgentViz from '@/components/MultiAgentViz';
+import { tierColor } from '@/lib/tierColors';
 
 // BUG-13 FIX: All IDs must match backend demo_personas.py seeds.
 // demo-ramesh / demo-priya / demo-suresh are not real IDs — they would 404.
@@ -22,12 +23,6 @@ const PERSONAS = [
   { id: 'APP-SURESH', name: 'Suresh', business: 'Suresh Electronics', city: 'Delhi', industry: 'Electronics', tier: 'ADEQUATE', score: 61, desc: 'Solid business, digital payments, moderate seasonal volatility' },
 ];
 
-const TIER_COLORS: Record<string, string> = {
-  STRONG: '#10B981',
-  ADEQUATE: '#3B82F6',
-  WATCH: '#F59E0B',
-  HIGH_RISK: '#F43F5E',
-};
 
 export default function DemoModePage() {
   const { currentPersona } = useAuth();
@@ -79,7 +74,7 @@ export default function DemoModePage() {
                   className={`
                     relative overflow-hidden rounded-xl border p-5 transition-all duration-300 cursor-pointer h-full flex flex-col justify-between
                     ${isSelected
-                      ? 'card-surface-elevated border-[#10B981] shadow-lg ring-1 ring-[#10B981]/30'
+                      ? 'card-surface-elevated border-tier-strong shadow-lg ring-1 ring-tier-strong/30'
                       : 'card-surface-base hover:border-[var(--text-secondary)]'
                     }
                   `}
@@ -92,7 +87,7 @@ export default function DemoModePage() {
                       </div>
                       <Badge
                         variant={persona.tier.toLowerCase().replace('_', '-') as any}
-                        style={{ borderColor: TIER_COLORS[persona.tier] + '40', fontWeight: 'bold' }}
+                        style={{ borderColor: `color-mix(in srgb, ${tierColor(persona.tier)} 40%, transparent)`, fontWeight: 'bold' }}
                       >
                         {persona.tier}
                       </Badge>
@@ -101,7 +96,7 @@ export default function DemoModePage() {
                     <div className="text-xs text-[var(--text-secondary)] font-semibold mb-3">{persona.city} • {persona.industry}</div>
                     <div className="flex items-center justify-between mb-3 border-y border-[var(--border)] py-2">
                       <span className="text-xs text-[var(--text-secondary)] font-medium">Underwriting Score</span>
-                      <span className="text-xl font-bold font-mono leading-none" style={{ color: TIER_COLORS[persona.tier] }}>
+                      <span className="text-xl font-bold font-mono leading-none" style={{ color: tierColor(persona.tier) }}>
                         {persona.score}
                       </span>
                     </div>

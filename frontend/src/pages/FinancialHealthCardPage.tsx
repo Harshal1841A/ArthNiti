@@ -332,7 +332,7 @@ export default function FinancialHealthCardPage() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 p-6 text-sm text-[#F43F5E] font-mono">
+      <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-6 text-sm text-tier-high-risk font-mono">
         <div className="font-bold mb-1 uppercase tracking-wider">System Exception</div>
         {error}
       </div>
@@ -350,7 +350,7 @@ export default function FinancialHealthCardPage() {
   if (isBorrower && id !== 'APP-SURESH' && !id?.startsWith('DEMO-')) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] p-8 max-w-xl mx-auto text-center font-sans">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 mb-5 shadow-sm">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-tier-high-risk/15 text-tier-high-risk border border-tier-high-risk/30 mb-5 shadow-sm">
           <AlertTriangle className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 tracking-tight font-serif">
@@ -385,22 +385,22 @@ export default function FinancialHealthCardPage() {
     <div className="space-y-8 font-sans">
       {/* Inline fetch error banner */}
       {fetchError && (
-        <div className="flex items-start gap-3 rounded-xl border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-5 py-4">
-          <AlertTriangle className="h-4 w-4 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-tier-watch/30 bg-tier-watch/10 px-5 py-4">
+          <AlertTriangle className="h-4 w-4 text-tier-watch flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <div className="text-xs font-bold font-mono uppercase tracking-wider text-[#F59E0B] mb-0.5">AA Telemetry Error</div>
-            <div className="text-xs text-[#F59E0B]/80 font-mono">{fetchError}</div>
+            <div className="text-xs font-bold font-mono uppercase tracking-wider text-tier-watch mb-0.5">AA Telemetry Error</div>
+            <div className="text-xs text-tier-watch/80 font-mono">{fetchError}</div>
           </div>
-          <button onClick={() => setFetchError('')} className="text-[#F59E0B]/60 hover:text-[#F59E0B] text-lg leading-none">×</button>
+          <button onClick={() => setFetchError('')} className="text-tier-watch/60 hover:text-tier-watch text-lg leading-none">×</button>
         </div>
       )}
       {/* Inline scoring error banner — does NOT kill the page */}
       {scoringError && (
-        <div className="flex items-start gap-3 rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 px-5 py-4">
-          <AlertTriangle className="h-4 w-4 text-[#F43F5E] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 px-5 py-4">
+          <AlertTriangle className="h-4 w-4 text-tier-high-risk flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <div className="text-xs font-bold font-mono uppercase tracking-wider text-[#F43F5E] mb-0.5">Scoring Error</div>
-            <div className="text-xs text-[#F43F5E]/80 font-mono">{scoringError}</div>
+            <div className="text-xs font-bold font-mono uppercase tracking-wider text-tier-high-risk mb-0.5">Scoring Error</div>
+            <div className="text-xs text-tier-high-risk/80 font-mono">{scoringError}</div>
             {scoringError.includes('normalized features') && (
               <div className="mt-2 text-xs text-[var(--text-secondary)] font-sans">
                 👉 Click <strong>Fetch AA Telemetry</strong> first to pull financial data, then re-run scoring.
@@ -409,7 +409,7 @@ export default function FinancialHealthCardPage() {
           </div>
           <button
             onClick={() => setScoringError('')}
-            className="text-[#F43F5E]/60 hover:text-[#F43F5E] text-lg leading-none"
+            className="text-tier-high-risk/60 hover:text-tier-high-risk text-lg leading-none"
           >×</button>
         </div>
       )}
@@ -428,7 +428,7 @@ export default function FinancialHealthCardPage() {
             <h1 className="text-3xl font-serif text-[var(--text-primary)]">{applicant.business_name}</h1>
             <div className="flex items-center gap-2 mt-1">
               {applicant.is_synthetic && <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase bg-[var(--border)] text-[var(--text-secondary)] border border-[var(--border)]">Synthetic Prototype</span>}
-              {!applicant.has_bureau_record && <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">Thin File (NTC)</span>}
+              {!applicant.has_bureau_record && <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase bg-tier-watch/15 text-tier-watch border border-tier-watch/30">Thin File (NTC)</span>}
             </div>
           </div>
         </div>
@@ -491,7 +491,7 @@ export default function FinancialHealthCardPage() {
             </div>
           )}
           <div className="mt-6 pt-6 border-t border-[var(--border)] text-[11px] font-mono text-[var(--text-secondary)] flex items-center justify-center gap-2">
-            <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-tier-strong" />
             DEPA / Sahamati Compliant • Zero-Knowledge Data Storage
           </div>
         </div>
@@ -579,15 +579,15 @@ export default function FinancialHealthCardPage() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`mt-4 text-xs font-bold font-mono px-3 py-1 rounded border ${deltaScore > 0 ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30' : 'bg-[#F43F5E]/10 text-[#F43F5E] border-[#F43F5E]/30'}`}
+                      className={`mt-4 text-xs font-bold font-mono px-3 py-1 rounded border ${deltaScore > 0 ? 'bg-tier-strong/10 text-tier-strong border-tier-strong/30' : 'bg-tier-high-risk/10 text-tier-high-risk border-tier-high-risk/30'}`}
                     >
                       SIMULATION DELTA: {deltaScore > 0 ? '+' : ''}{deltaScore} PTS
                     </motion.div>
                   )}
                   <div className="mt-5 text-center">
                     <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-mono font-semibold ${
-                      routing?.routing === 'REJECT' ? 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30' :
-                      routing?.requires_review ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30'
+                      routing?.routing === 'REJECT' ? 'bg-tier-high-risk/15 text-tier-high-risk border border-tier-high-risk/30' :
+                      routing?.requires_review ? 'bg-tier-watch/15 text-tier-watch border border-tier-watch/30' : 'bg-tier-strong/15 text-tier-strong border border-tier-strong/30'
                     }`}>
                       {routing?.routing === 'REJECT' ? <AlertTriangle className="h-4 w-4" /> : routing?.requires_review ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                       {routing?.routing === 'STRAIGHT_THROUGH' ? 'Straight-Through Underwriting Approval' : routing?.routing === 'REJECT' ? 'Adverse Action Notice (Declined)' : 'Enhanced Human Underwriting Review Required'}
@@ -608,22 +608,22 @@ export default function FinancialHealthCardPage() {
                   <SHAPWaterfall factors={displayScore.contributing_factors || []} />
                   <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
                     <div>
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#10B981] font-bold mb-2.5 flex items-center gap-1.5">
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-tier-strong font-bold mb-2.5 flex items-center gap-1.5">
                         <TrendingUp className="h-3.5 w-3.5" /> Key Drivers (+)
                       </div>
                       {strengths.length > 0 ? strengths.slice(0, 3).map((f: any) => (
                         <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                          {f.feature.replace(/_/g, ' ')}: <span className="text-[#10B981] font-bold">+{f.shap_value.toFixed(4)}</span>
+                          {f.feature.replace(/_/g, ' ')}: <span className="text-tier-strong font-bold">+{f.shap_value.toFixed(4)}</span>
                         </div>
                       )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No positive determinants</p>}
                     </div>
                     <div>
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#F43F5E] font-bold mb-2.5 flex items-center gap-1.5">
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-tier-high-risk font-bold mb-2.5 flex items-center gap-1.5">
                         <TrendingDown className="h-3.5 w-3.5" /> Key Drivers (-)
                       </div>
                       {risks.length > 0 ? risks.slice(0, 3).map((f: any) => (
                         <div key={f.feature} className="text-xs text-[var(--text-secondary)] mb-1.5 font-mono">
-                          {f.feature.replace(/_/g, ' ')}: <span className="text-[#F43F5E] font-bold">{f.shap_value.toFixed(4)}</span>
+                          {f.feature.replace(/_/g, ' ')}: <span className="text-tier-high-risk font-bold">{f.shap_value.toFixed(4)}</span>
                         </div>
                       )) : <p className="text-xs font-mono text-[var(--text-secondary)]">No risk determinants</p>}
                     </div>
@@ -672,7 +672,7 @@ export default function FinancialHealthCardPage() {
                 {xai ? (
                   <div className="space-y-4">
                     <div className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono font-semibold ${
-                      xai.cross_check_passed ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30' : 'bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30'
+                      xai.cross_check_passed ? 'bg-tier-strong/15 text-tier-strong border border-tier-strong/30' : 'bg-tier-high-risk/15 text-tier-high-risk border border-tier-high-risk/30'
                     }`}>
                       {xai.cross_check_passed ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                       {xai.cross_check_passed ? 'Numeric Fact-Check Verified' : 'Hallucination / Unsupported Claims Flagged'}
@@ -716,7 +716,7 @@ export default function FinancialHealthCardPage() {
                 <div className="border-b border-[var(--border)] pb-3 mb-4">
                   <span className="eyebrow">VERNACULAR // AUDIO</span>
                   <h3 className="text-base font-serif text-[var(--text-primary)] flex items-center gap-2">
-                    <Volume2 className="h-4 w-4 text-[#10B981]" /> Arth-Mitra Voice <span className="italic">Interface</span>.
+                    <Volume2 className="h-4 w-4 text-tier-strong" /> Arth-Mitra Voice <span className="italic">Interface</span>.
                   </h3>
                 </div>
                 <ArthMitraPlayer

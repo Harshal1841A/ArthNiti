@@ -144,7 +144,7 @@ export default function ReviewQueuePage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-[#F43F5E]/30 bg-[#F43F5E]/10 p-5 text-sm text-[#F43F5E] flex items-start gap-3 font-mono">
+        <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-5 text-sm text-tier-high-risk flex items-start gap-3 font-mono">
           <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           {error}
         </div>
@@ -164,13 +164,13 @@ export default function ReviewQueuePage() {
       ) : (
         <div className="space-y-6">
           {reviews.map(item => (
-            <div key={item.review_id} className="glass-card overflow-hidden border border-[var(--border)] border-l-4 transition-all hover:border-[var(--text-secondary)]" style={{ borderLeftColor: item.tier === 'HIGH_RISK' ? '#F43F5E' : '#F59E0B' }}>
+            <div key={item.review_id} className="glass-card overflow-hidden border border-[var(--border)] border-l-4 transition-all hover:border-[var(--text-secondary)]" style={{ borderLeftColor: item.tier === 'HIGH_RISK' ? 'var(--tier-high-risk)' : 'var(--tier-watch)' }}>
               <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <div className="flex items-center gap-3 flex-wrap">
                       <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">{item.business_name}</h3>
-                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border uppercase tracking-wider" style={{ color: item.tier === 'HIGH_RISK' ? '#F43F5E' : '#F59E0B', borderColor: item.tier === 'HIGH_RISK' ? '#F43F5E' : '#F59E0B' }}>{item.tier}</span>
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border uppercase tracking-wider" style={{ color: item.tier === 'HIGH_RISK' ? 'var(--tier-high-risk)' : 'var(--tier-watch)', borderColor: item.tier === 'HIGH_RISK' ? 'var(--tier-high-risk)' : 'var(--tier-watch)' }}>{item.tier}</span>
                       <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)] uppercase">{item.status}</span>
                     </div>
                     <div className="text-xs text-[var(--text-secondary)] mt-1.5 font-mono">
@@ -193,17 +193,17 @@ export default function ReviewQueuePage() {
                         {(item.contributing_factors || []).slice(0, 5).map((f, idx) => (
                           <div key={idx} className="flex items-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3.5 py-2 text-xs font-mono">
                             <span className="text-[var(--text-secondary)]">{f?.feature ? f.feature.replace(/_/g, ' ') : 'Factor'}:</span>
-                            <span className={`font-bold ${(f?.shap_value || 0) < 0 ? 'text-[#F43F5E]' : 'text-[#10B981]'}`}>
+                            <span className={`font-bold ${(f?.shap_value || 0) < 0 ? 'text-tier-high-risk' : 'text-tier-strong'}`}>
                               {typeof f?.shap_value === 'number' ? (f.shap_value > 0 ? `+${f.shap_value.toFixed(4)}` : f.shap_value.toFixed(4)) : '0.0000'}
                             </span>
-                            {(f?.shap_value || 0) < 0 ? <TrendingDown className="h-3.5 w-3.5 text-[#F43F5E]" /> : <TrendingUp className="h-3.5 w-3.5 text-[#10B981]" />}
+                            {(f?.shap_value || 0) < 0 ? <TrendingDown className="h-3.5 w-3.5 text-tier-high-risk" /> : <TrendingUp className="h-3.5 w-3.5 text-tier-strong" />}
                           </div>
                         ))}
                       </div>
                     </div>
                     {item.notes && (
-                      <div className="rounded-xl border border-[#F59E0B]/30 bg-[#F59E0B]/10 p-4 text-xs text-[var(--text-primary)] font-mono">
-                        <span className="font-bold text-[#F59E0B] uppercase tracking-wider">Underwriter Determination Notes:</span> {item.notes}
+                      <div className="rounded-xl border border-tier-watch/30 bg-tier-watch/10 p-4 text-xs text-[var(--text-primary)] font-mono">
+                        <span className="font-bold text-tier-watch uppercase tracking-wider">Underwriter Determination Notes:</span> {item.notes}
                       </div>
                     )}
                   </div>
@@ -213,7 +213,7 @@ export default function ReviewQueuePage() {
                       <div className="text-xs text-[var(--text-secondary)] mb-1 font-mono uppercase">Assigned Underwriting Officer</div>
                       <div className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
                         {item.assigned_officer ? (
-                          <><UserCheck className="h-4 w-4 text-[#10B981]" /> {item.assigned_officer}</>
+                          <><UserCheck className="h-4 w-4 text-tier-strong" /> {item.assigned_officer}</>
                         ) : (
                           <span className="text-[var(--text-muted)] font-mono font-normal">Unassigned Queue</span>
                         )}
@@ -235,10 +235,10 @@ export default function ReviewQueuePage() {
                               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-primary)] font-sans"
                             />
                             <div className="flex gap-2">
-                              <button onClick={() => handleResolve(item.review_id, 'approved')} className="flex-1 py-2 rounded-xl bg-[#10B981] text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
+                              <button onClick={() => handleResolve(item.review_id, 'approved')} className="flex-1 py-2 rounded-xl bg-tier-strong text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                               </button>
-                              <button onClick={() => handleResolve(item.review_id, 'rejected')} className="flex-1 py-2 rounded-xl bg-[#F43F5E] text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
+                              <button onClick={() => handleResolve(item.review_id, 'rejected')} className="flex-1 py-2 rounded-xl bg-tier-high-risk text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
                                 <XCircle className="h-3.5 w-3.5" /> Reject
                               </button>
                             </div>

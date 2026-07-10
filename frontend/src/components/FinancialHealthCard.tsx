@@ -1,12 +1,7 @@
 import { motion } from 'framer-motion';
 import { Shield, CheckCircle2, Zap } from 'lucide-react';
+import { tierColor } from '@/lib/tierColors';
 
-const TIER_COLORS: Record<string, string> = {
-  STRONG: '#10B981',
-  ADEQUATE: '#3B82F6',
-  WATCH: '#F59E0B',
-  HIGH_RISK: '#F43F5E',
-};
 
 interface FinancialHealthCardProps {
   score: number;
@@ -22,7 +17,7 @@ interface FinancialHealthCardProps {
 export default function FinancialHealthCard({
   score, tier, businessName, city, industry, isNTC, modelVersion, inferenceMs,
 }: FinancialHealthCardProps) {
-  const color = TIER_COLORS[tier] || '#64748B';
+  const color = tierColor(tier);
 
   return (
     <motion.div

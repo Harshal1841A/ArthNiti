@@ -263,7 +263,7 @@ export default function DemoPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)] font-medium">Review Required</span>
-                      <span className={`font-bold ${selectedPersona.tier === 'WATCH' || selectedPersona.tier === 'HIGH_RISK' ? 'text-[#F59E0B]' : 'text-[#10B981]'}`}>
+                      <span className={`font-bold ${selectedPersona.tier === 'WATCH' || selectedPersona.tier === 'HIGH_RISK' ? 'text-tier-watch' : 'text-tier-strong'}`}>
                         {selectedPersona.tier === 'WATCH' || selectedPersona.tier === 'HIGH_RISK' ? 'Yes' : 'No'}
                       </span>
                     </div>
@@ -280,7 +280,7 @@ export default function DemoPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2 text-[#10B981] font-bold">
+                  <CardTitle className="text-sm flex items-center gap-2 text-tier-strong font-bold">
                     <TrendingUp className="h-4 w-4" /> Strengths
                   </CardTitle>
                 </CardHeader>
@@ -289,10 +289,10 @@ export default function DemoPage() {
                     <div key={f.feature}>
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-[var(--text-primary)] font-semibold">{f.feature.replace(/_/g, ' ')}</span>
-                        <span className="text-[#10B981] font-mono font-bold">+{f.shap_value.toFixed(4)}</span>
+                        <span className="text-tier-strong font-mono font-bold">+{f.shap_value.toFixed(4)}</span>
                       </div>
                       <div className="h-2 rounded-full bg-[var(--bg-card-hover)] overflow-hidden border border-[var(--border)]">
-                        <div className="h-full rounded-full bg-[#10B981] transition-all" style={{ width: `${(f.shap_value / maxShap) * 100}%` }} />
+                        <div className="h-full rounded-full bg-tier-strong transition-all" style={{ width: `${(f.shap_value / maxShap) * 100}%` }} />
                       </div>
                     </div>
                   ))}
@@ -301,7 +301,7 @@ export default function DemoPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2 text-[#F43F5E] font-bold">
+                  <CardTitle className="text-sm flex items-center gap-2 text-tier-high-risk font-bold">
                     <TrendingDown className="h-4 w-4" /> Risk Factors
                   </CardTitle>
                 </CardHeader>
@@ -310,10 +310,10 @@ export default function DemoPage() {
                     <div key={f.feature}>
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-[var(--text-primary)] font-semibold">{f.feature.replace(/_/g, ' ')}</span>
-                        <span className="text-[#F43F5E] font-mono font-bold">{f.shap_value.toFixed(4)}</span>
+                        <span className="text-tier-high-risk font-mono font-bold">{f.shap_value.toFixed(4)}</span>
                       </div>
                       <div className="h-2 rounded-full bg-[var(--bg-card-hover)] overflow-hidden border border-[var(--border)]">
-                        <div className="h-full rounded-full bg-[#F43F5E] transition-all" style={{ width: `${(Math.abs(f.shap_value) / maxShap) * 100}%` }} />
+                        <div className="h-full rounded-full bg-tier-high-risk transition-all" style={{ width: `${(Math.abs(f.shap_value) / maxShap) * 100}%` }} />
                       </div>
                     </div>
                   ))}
@@ -332,7 +332,7 @@ export default function DemoPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold bg-tier-strong/15 text-tier-strong border border-tier-strong/30">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Numeric cross-check passed
                   </div>

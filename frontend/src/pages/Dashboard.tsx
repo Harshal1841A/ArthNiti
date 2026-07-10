@@ -9,13 +9,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import MultiAgentViz from '@/components/MultiAgentViz';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { tierColor } from '@/lib/tierColors';
 
-const TIER_COLORS: Record<string, string> = {
-  STRONG: '#10B981',
-  ADEQUATE: '#3B82F6',
-  WATCH: '#F59E0B',
-  HIGH_RISK: '#F43F5E',
-};
 
 // BUG-13 FIX: These IDs must match exactly what backend/data/demo_personas.py seeds.
 // APP-VIKRAM and APP-ANITA do not exist in the backend — they caused 404 on click.
@@ -51,11 +46,11 @@ function KPICard({ title, value, subtitle, trend, trendValue, icon }: any) {
       {trend && (
         <div className="mt-4 flex items-center gap-1.5 text-xs font-mono border-t border-[var(--border)] pt-3">
           {trend === 'up' ? (
-            <ArrowUpRight className="h-3.5 w-3.5 text-[#10B981]" />
+            <ArrowUpRight className="h-3.5 w-3.5 text-tier-strong" />
           ) : trend === 'down' ? (
-            <ArrowDownRight className="h-3.5 w-3.5 text-[#F43F5E]" />
+            <ArrowDownRight className="h-3.5 w-3.5 text-tier-high-risk" />
           ) : null}
-          <span className={trend === 'up' ? 'text-[#10B981] font-semibold' : trend === 'down' ? 'text-[#F43F5E] font-semibold' : 'text-[var(--text-secondary)]'}>
+          <span className={trend === 'up' ? 'text-tier-strong font-semibold' : trend === 'down' ? 'text-tier-high-risk font-semibold' : 'text-[var(--text-secondary)]'}>
             {trendValue}
           </span>
         </div>
@@ -103,7 +98,7 @@ function BorrowerOverview() {
         <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
           <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Credit Health Score</span>
           <div className="mt-2 flex items-baseline gap-3">
-            <span className="text-3xl font-bold font-mono text-[#10B981]">85</span>
+            <span className="text-3xl font-bold font-mono text-tier-strong">85</span>
             <span className="text-sm font-mono text-[var(--text-secondary)]">/ 100</span>
             <span className="badge badge-strong ml-auto">STRONG</span>
           </div>
@@ -119,7 +114,7 @@ function BorrowerOverview() {
           </div>
           <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3 flex items-center justify-between">
             <span>Interest Rate: <strong className="text-[var(--text-primary)] font-mono">10.5% p.a.</strong></span>
-            <span className="text-[#10B981] font-medium flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Disbursal</span>
+            <span className="text-tier-strong font-medium flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Disbursal</span>
           </p>
         </div>
 
@@ -127,8 +122,8 @@ function BorrowerOverview() {
           <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Connected AA Consent</span>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm font-bold text-[var(--text-primary)] font-mono">Anumati AA Pipeline</span>
-            <span className="flex items-center gap-1.5 text-xs text-[#10B981] font-semibold bg-[#10B981]/10 px-2 py-0.5 rounded-full border border-[#10B981]/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" /> Active
+            <span className="flex items-center gap-1.5 text-xs text-tier-strong font-semibold bg-tier-strong/10 px-2 py-0.5 rounded-full border border-tier-strong/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-tier-strong animate-pulse" /> Active
             </span>
           </div>
           <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3">
@@ -169,10 +164,10 @@ function BorrowerOverview() {
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-tier-strong/15 text-tier-strong border border-tier-strong/30">
                   <FileCheck className="h-5 w-5" />
                 </div>
-                <span className="text-xs font-mono font-bold text-[#10B981] group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                <span className="text-xs font-mono font-bold text-tier-strong group-hover:translate-x-1 transition-transform flex items-center gap-1">
                   View Card <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
               </div>
@@ -278,10 +273,10 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <KPICard title="Total Applicants" value={stats?.total_applicants || 0} subtitle="Registered MSME profiles" icon={<Users className="h-4 w-4" />} color="#3B82F6" trend="up" trendValue="+12% from last week" />
-        <KPICard title="NTC/NTB Coverage" value={`${stats?.coverage_improvement_pct?.toFixed(1) || 0}%`} subtitle={`${stats?.applicants_without_bureau_record_with_usable_score || 0} usable scores`} icon={<FileCheck className="h-4 w-4" />} color="#10B981" trend="up" trendValue="+5.3% improvement" />
-        <KPICard title="Flagged for Review" value={(scores.find((s) => s.tier === 'WATCH')?.count || 0) + (scores.find((s) => s.tier === 'HIGH_RISK')?.count || 0)} subtitle="WATCH + HIGH_RISK tiers" icon={<AlertTriangle className="h-4 w-4" />} color="#F59E0B" trend="neutral" trendValue="Stable" />
-        <KPICard title="AA Adapter Status" value="Active" subtitle="Finvu sandbox connected" icon={<Activity className="h-4 w-4" />} color="#C9A961" trend="up" trendValue="Online" />
+        <KPICard title="Total Applicants" value={stats?.total_applicants || 0} subtitle="Registered MSME profiles" icon={<Users className="h-4 w-4" />} color="var(--accent-blue)" trend="up" trendValue="+12% from last week" />
+        <KPICard title="NTC/NTB Coverage" value={`${stats?.coverage_improvement_pct?.toFixed(1) || 0}%`} subtitle={`${stats?.applicants_without_bureau_record_with_usable_score || 0} usable scores`} icon={<FileCheck className="h-4 w-4" />} color="var(--accent-emerald)" trend="up" trendValue="+5.3% improvement" />
+        <KPICard title="Flagged for Review" value={(scores.find((s) => s.tier === 'WATCH')?.count || 0) + (scores.find((s) => s.tier === 'HIGH_RISK')?.count || 0)} subtitle="WATCH + HIGH_RISK tiers" icon={<AlertTriangle className="h-4 w-4" />} color="var(--accent-amber)" trend="neutral" trendValue="Stable" />
+        <KPICard title="AA Adapter Status" value="Active" subtitle="Finvu sandbox connected" icon={<Activity className="h-4 w-4" />} color="var(--accent)" trend="up" trendValue="Online" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -303,7 +298,7 @@ export default function Dashboard() {
                 <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {scores.map((d: any) => (
-                    <Cell key={d.tier} fill={TIER_COLORS[d.tier] || '#64748b'} />
+                    <Cell key={d.tier} fill={tierColor(d.tier)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -366,13 +361,13 @@ export default function Dashboard() {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-mono text-[var(--text-secondary)] font-semibold">{p.id}</span>
-                {p.isNTC && <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)]">NTC</span>}
+                {p.isNTC && <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)]">NTC</span>}
               </div>
               <div className="text-sm font-bold text-[var(--text-primary)] mb-0.5">{p.name}</div>
               <div className="text-[11px] text-[var(--text-secondary)] font-sans">{p.industry} • {p.city}</div>
               <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2.5">
-                <span className="text-xl font-bold font-mono" style={{ color: TIER_COLORS[p.tier] }}>{p.score}</span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ color: TIER_COLORS[p.tier], backgroundColor: TIER_COLORS[p.tier] + '15' }}>{p.tier}</span>
+                <span className="text-xl font-bold font-mono" style={{ color: tierColor(p.tier) }}>{p.score}</span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ color: tierColor(p.tier), backgroundColor: `color-mix(in srgb, ${tierColor(p.tier)} 15%, transparent)` }}>{p.tier}</span>
               </div>
             </button>
           ))}
@@ -389,24 +384,24 @@ export default function Dashboard() {
           <div className="space-y-3 font-sans">
             <div className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4 bg-[var(--surface)]">
               <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-[#10B981]" />
+                <div className="h-2 w-2 rounded-full bg-tier-strong" />
                 <div className="text-sm font-bold text-[var(--text-primary)]">Account Aggregator (AA)</div>
               </div>
-              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">REAL API</span>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-tier-strong/15 text-tier-strong border border-tier-strong/30">REAL API</span>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4 bg-[var(--surface)]">
               <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                <div className="h-2 w-2 rounded-full bg-tier-watch" />
                 <div className="text-sm font-bold text-[var(--text-primary)]">OCEN Adapter</div>
               </div>
-              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">SANDBOX</span>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-tier-watch/15 text-tier-watch border border-tier-watch/30">SANDBOX</span>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4 bg-[var(--surface)]">
               <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                <div className="h-2 w-2 rounded-full bg-tier-watch" />
                 <div className="text-sm font-bold text-[var(--text-primary)]">ULI Connector</div>
               </div>
-              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">SANDBOX</span>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-tier-watch/15 text-tier-watch border border-tier-watch/30">SANDBOX</span>
             </div>
           </div>
         </div>

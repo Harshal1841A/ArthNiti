@@ -324,7 +324,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
           disabled={isLoading}
           className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all border shrink-0 cursor-pointer shadow-sm ${
             isPlaying
-              ? 'bg-[#F43F5E]/20 text-[#F43F5E] border-[#F43F5E]/50 hover:bg-[#F43F5E]/30'
+              ? 'bg-tier-high-risk/20 text-tier-high-risk border-tier-high-risk/50 hover:bg-tier-high-risk/30'
               : 'bg-[var(--accent-emerald)]/15 text-[var(--accent-emerald)] hover:bg-[var(--accent-emerald)]/25 border-[var(--accent-emerald)]/40'
           }`}
           title={isPlaying ? "Stop Voice Playback" : "Listen in Selected Language"}
@@ -364,7 +364,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
           <button
             type="button"
             onClick={stopAllAudio}
-            className="flex items-center justify-center w-9 h-9 rounded-lg border border-[#F43F5E]/40 bg-[#F43F5E]/10 text-[#F43F5E] hover:bg-[#F43F5E]/20 transition-all text-xs"
+            className="flex items-center justify-center w-9 h-9 rounded-lg border border-tier-high-risk/40 bg-tier-high-risk/10 text-tier-high-risk hover:bg-tier-high-risk/20 transition-all text-xs"
             title="Stop Audio"
           >
             <VolumeX className="h-4 w-4" />
@@ -416,7 +416,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
             <Globe className="h-3 w-3" /> Vernacular Transcript ({currentLangObj.label})
           </span>
           {usingFallback && (
-            <span className="text-[10px] font-mono text-[#10B981] flex items-center gap-1">
+            <span className="text-[10px] font-mono text-tier-strong flex items-center gap-1">
               <Volume2 className="h-3 w-3" /> Native Indic Speech Engine
             </span>
           )}

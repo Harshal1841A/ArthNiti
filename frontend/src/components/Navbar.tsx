@@ -181,7 +181,7 @@ export default function Navbar() {
             >
               <Bell className={`h-5 w-5 ${showNotifications ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors`} />
               {activeAlerts.length > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent-amber)] text-[9px] font-bold text-black ring-2 ring-[var(--bg-page)] animate-pulse">
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent-amber)] text-[10px] font-bold text-black ring-2 ring-[var(--bg-page)] animate-pulse">
                   {activeAlerts.length}
                 </span>
               )}

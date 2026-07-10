@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { tierColor } from '@/lib/tierColors';
 
-const TIER_COLORS: Record<string, string> = {
-  STRONG: '#10B981',
-  ADEQUATE: '#3B82F6',
-  WATCH: '#F59E0B',
-  HIGH_RISK: '#F43F5E',
-};
 
 interface ScoreGaugeProps {
   score: number;
@@ -18,7 +13,7 @@ interface ScoreGaugeProps {
 export default function ScoreGauge({ score, tier, size = 200, duration = 1.5 }: ScoreGaugeProps) {
   const [displayScore, setDisplayScore] = useState(0);
   const progress = useMotionValue(0);
-  const color = TIER_COLORS[tier] || '#64748B';
+  const color = tierColor(tier);
   const radius = (size - 16) / 2;
   const circumference = 2 * Math.PI * radius;
 

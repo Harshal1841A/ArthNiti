@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Loader2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
+import { lenderColor } from '@/lib/tierColors';
 
 export interface LoanOffer {
   lender_name: string;
@@ -24,12 +25,6 @@ const LENDER_ICONS: Record<string, React.ReactNode> = {
   BANK: <Landmark className="h-4 w-4" />,
   COOP: <Building2 className="h-4 w-4" />,
   NBFC: <Wallet className="h-4 w-4" />,
-};
-
-const LENDER_COLORS: Record<string, string> = {
-  BANK: '#3B82F6',
-  COOP: '#10B981',
-  NBFC: '#F59E0B',
 };
 
 export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCarouselProps) {
@@ -102,9 +97,9 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
           <div>
             <h3 className="text-lg font-serif font-bold text-[var(--text-primary)] tracking-tight">OCEN Loan Marketplace</h3>
-            <p className="text-xs font-mono text-[var(--text-secondary)] mt-0.5">Real-time credit protocol offers & instant e-sign mandates</p>
+            <p className="text-xs font-sans text-[var(--text-secondary)] mt-0.5">Real-time credit protocol offers & instant e-sign mandates</p>
           </div>
-          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-primary)]">
+          <span className="text-xs font-sans font-bold px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--border-subtle)] text-[var(--text-primary)]">
             {(offers || []).length} ACTIVE BIDS
           </span>
         </div>
@@ -121,7 +116,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
           <div className="flex gap-5 overflow-x-auto pb-4 snap-x pt-1">
             {offers.map((offer, index) => {
               const isSelected = index === selectedIndex;
-              const color = LENDER_COLORS[offer.lender_type] || '#64748B';
+              const color = lenderColor(offer.lender_type);
               const isThisBidAccepted = acceptedBid?.lender_name === offer.lender_name;
 
               return (
@@ -248,7 +243,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)] uppercase flex items-center gap-1">
+                <span className="text-[10px] font-sans font-bold px-2.5 py-1 rounded-full bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)] uppercase flex items-center gap-1">
                   {bidStage === 'signing' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                   {bidStage === 'signing' ? 'Signing & Verifying...' : 'AA Mandate Executed'}
                 </span>
@@ -257,19 +252,19 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
               <div>
-                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Sanction Limit</span>
+                <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Sanction Limit</span>
                 <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{(acceptedBid.max_amount / 100000).toFixed(2)} Lakhs</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Interest Rate</span>
+                <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Interest Rate</span>
                 <span className="text-sm font-mono font-bold text-[var(--accent-emerald)]">{acceptedBid.interest_rate_annual}% APR</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Tenure & EMI</span>
+                <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Tenure &amp; EMI</span>
                 <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{acceptedBid.emi.toLocaleString()} / {acceptedBid.tenure_months}m</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[var(--text-secondary)] block">Disbursement SLA</span>
+                <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Disbursement SLA</span>
                 <span className="text-sm font-mono font-bold text-[var(--text-primary)]">{acceptedBid.disbursement_days} Days (Direct Bank)</span>
               </div>
             </div>
@@ -280,7 +275,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                 animate={{ opacity: 1 }}
                 className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2"
               >
-                <div className="text-xs font-mono text-[var(--text-secondary)] flex items-center gap-1.5">
+                <div className="text-xs font-sans text-[var(--text-secondary)] flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-[var(--accent-emerald)] animate-ping" />
                   Cryptographic AA e-Sign Verified. Funds scheduled for direct transfer via Account Aggregator rail.
                 </div>
@@ -288,14 +283,14 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                   <button
                     type="button"
                     onClick={handleDownloadReceipt}
-                    className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[var(--accent-emerald)] text-black font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[var(--accent-emerald)] text-black font-sans font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <Download className="h-3.5 w-3.5" /> Mandate Receipt
                   </button>
                   <button
                     type="button"
                     onClick={() => setAcceptedBid(null)}
-                    className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-mono text-xs hover:bg-[var(--surface-raised)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-sans text-xs hover:bg-[var(--surface-raised)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw className="h-3.5 w-3.5" /> Switch Offer
                   </button>
