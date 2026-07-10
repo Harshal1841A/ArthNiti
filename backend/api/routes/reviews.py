@@ -7,7 +7,7 @@ POST /api/v1/reviews/{id}/resolve   → Approve or Reject application
 
 import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,9 +51,13 @@ class ResolveReviewRequest(BaseModel):
 
 
 @router.get("", response_model=List[ReviewQueueItemResponse])
-async def list_review_queue(db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
+async def list_review_queue(
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500),
+    _auth: str = Depends(verify_api_key),
+):
     """List all flagged MSME applications requiring underwriter review."""
-    stmt = select(ReviewQueue).order_by(ReviewQueue.created_at.desc())
+    stmt = select(ReviewQueue).order_by(ReviewQueue.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     reviews = result.scalars().all()
 

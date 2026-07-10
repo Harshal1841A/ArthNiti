@@ -86,6 +86,10 @@ export default function DemoPage() {
   }, []);
 
   useEffect(() => {
+    startDemo();
+  }, [startDemo]);
+
+  useEffect(() => {
     if (stage < 0) return;
 
     if (stage >= AGENT_STAGES.length) {
@@ -113,7 +117,6 @@ export default function DemoPage() {
     setIsFallback(false);
   }, [selectedPersona, language]);
 
-  // NEW-06 FIX: Stable latencies per stage so Math.random() doesn't flicker on re-renders
   const latenciesRef = useRef<Record<string, number>>({});
   const nodes = useMemo(() => {
     return AGENT_STAGES.map((id) => {
@@ -131,15 +134,38 @@ export default function DemoPage() {
   }, [agentStatuses]);
 
   const tierConfig = TIER_CONFIG[selectedPersona.tier];
-  const strengths = [
-    { feature: 'avg_monthly_inflow', shap_value: 0.15 },
-    { feature: 'gst_filing_regularity_12mo', shap_value: 0.12 },
-  ];
-  const risks = [
-    { feature: 'bounce_count_90d', shap_value: -0.08 },
-    { feature: 'inflow_volatility_coefficient', shap_value: -0.05 },
-  ];
-  const maxShap = 0.15;
+
+  const PERSONA_SHAP: Record<string, { strengths: { feature: string; shap_value: number }[]; risks: { feature: string; shap_value: number }[] }> = {
+    'APP-RAMESH': {
+      strengths: [{ feature: 'avg_monthly_inflow', shap_value: 0.14 }, { feature: 'gst_filing_regularity_12mo', shap_value: 0.11 }],
+      risks: [{ feature: 'bounce_count_90d', shap_value: -0.06 }, { feature: 'inflow_volatility_coefficient', shap_value: -0.04 }],
+    },
+    'APP-PRIYA': {
+      strengths: [{ feature: 'avg_monthly_inflow', shap_value: 0.22 }, { feature: 'gst_filing_regularity_12mo', shap_value: 0.18 }],
+      risks: [{ feature: 'bounce_count_90d', shap_value: -0.01 }, { feature: 'inflow_volatility_coefficient', shap_value: -0.02 }],
+    },
+    'APP-MOHAMMED': {
+      strengths: [{ feature: 'avg_monthly_inflow', shap_value: 0.08 }, { feature: 'gst_filing_regularity_12mo', shap_value: 0.05 }],
+      risks: [{ feature: 'bounce_count_90d', shap_value: -0.14 }, { feature: 'inflow_volatility_coefficient', shap_value: -0.11 }],
+    },
+    'APP-LAKSHMI': {
+      strengths: [{ feature: 'avg_monthly_inflow', shap_value: 0.04 }, { feature: 'gst_filing_regularity_12mo', shap_value: 0.02 }],
+      risks: [{ feature: 'bounce_count_90d', shap_value: -0.24 }, { feature: 'inflow_volatility_coefficient', shap_value: -0.19 }],
+    },
+    'APP-SURESH': {
+      strengths: [{ feature: 'avg_monthly_inflow', shap_value: 0.12 }, { feature: 'gst_filing_regularity_12mo', shap_value: 0.09 }],
+      risks: [{ feature: 'bounce_count_90d', shap_value: -0.07 }, { feature: 'inflow_volatility_coefficient', shap_value: -0.05 }],
+    },
+  };
+
+  const personaShap = PERSONA_SHAP[selectedPersona.id] || PERSONA_SHAP['APP-RAMESH'];
+  const strengths = personaShap.strengths;
+  const risks = personaShap.risks;
+  const maxShap = Math.max(
+    ...strengths.map((s) => s.shap_value),
+    ...risks.map((r) => Math.abs(r.shap_value)),
+    0.15
+  );
 
   return (
     <div className="min-h-screen bg-[#f4f6f8] p-6 space-y-6">
@@ -256,15 +282,15 @@ export default function DemoPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)] font-medium">Next Step</span>
                       <span className="font-bold text-[var(--text-primary)]">
-                        {selectedPersona.tier === 'STRONG' || selectedPersona.tier === 'ADEQUATE'
+                        {selectedPersona.tier === 'STRONG'
                           ? 'Straight-Through Approval'
                           : 'Enhanced Review Required'}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)] font-medium">Review Required</span>
-                      <span className={`font-bold ${selectedPersona.tier === 'WATCH' || selectedPersona.tier === 'HIGH_RISK' ? 'text-tier-watch' : 'text-tier-strong'}`}>
-                        {selectedPersona.tier === 'WATCH' || selectedPersona.tier === 'HIGH_RISK' ? 'Yes' : 'No'}
+                      <span className={`font-bold ${selectedPersona.tier !== 'STRONG' ? 'text-tier-watch' : 'text-tier-strong'}`}>
+                        {selectedPersona.tier !== 'STRONG' ? 'Yes' : 'No'}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">

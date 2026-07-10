@@ -43,11 +43,12 @@ export default function Navbar() {
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchReviews();
-    // Auto refresh every 60 seconds
-    const interval = setInterval(fetchReviews, 60000);
+    if (currentPersona === 'applicant') return;
+    fetchReviews(false);
+    // Auto refresh every 60 seconds silently
+    const interval = setInterval(() => fetchReviews(true), 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentPersona]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -59,10 +60,11 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  async function fetchReviews() {
-    setLoading(true);
+  async function fetchReviews(silent = false) {
+    if (currentPersona === 'applicant') return;
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get('/v1/reviews');
+      const res = await api.get('/v1/reviews?limit=20');
       setAlerts(res.data || []);
     } catch (e) {
       setAlerts([

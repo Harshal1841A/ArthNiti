@@ -127,7 +127,9 @@ async def seed_demo_personas_db(db: AsyncSession) -> int:
 
     # NEW-10 FIX: Fast-path check to avoid 25 serial queries on every cold start when data exists
     persona_ids = [p["applicant"]["id"] for p in DEMO_PERSONAS]
-    res = await db.execute(select(func.count(Score.id)).where(Score.applicant_id.in_(persona_ids)))
+    res = await db.execute(
+        select(func.count(func.distinct(Score.applicant_id))).where(Score.applicant_id.in_(persona_ids))
+    )
     if res.scalar() == len(DEMO_PERSONAS):
         return len(DEMO_PERSONAS)
 

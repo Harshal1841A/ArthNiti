@@ -144,13 +144,19 @@ export default function FinancialHealthCardPage() {
   const [generatingXAI, setGeneratingXAI] = useState(false);
   const [scoring, setScoring] = useState(false);
   const [demoXaiPayload, setDemoXaiPayload] = useState<any>(null);
+  const [demoNarratives, setDemoNarratives] = useState<any>(null);
   const [fetchingData, setFetchingData] = useState(false);
   const [language, setLanguage] = useState('hi');
   const [whatIfScore, setWhatIfScore] = useState<any>(null);
   const [whatIfFeatures, setWhatIfFeatures] = useState<Record<string, number>>({});
 
+  const isRestrictedBorrower = isBorrower && id !== 'APP-SURESH' && !id?.startsWith('DEMO-');
+
   const loadData = useCallback(async () => {
-    if (!id) return;
+    if (!id || isRestrictedBorrower) {
+      setLoading(false);
+      return;
+    }
     setXai(null);
     try {
       let appResp;
@@ -163,6 +169,7 @@ export default function FinancialHealthCardPage() {
           setTrail(d.decision_trail);
           setRouting(d.routing);
           setOffers((d.loan_offers && d.loan_offers.length > 0) ? d.loan_offers : DEFAULT_FALLBACK_OFFERS);
+          setDemoNarratives(d.xai_narrative);
           const xaiPayload = {
             xai_id: `DEMO-XAI-${id}`,
             narrative: d.xai_narrative[language] || d.xai_narrative['en'],
@@ -190,9 +197,7 @@ export default function FinancialHealthCardPage() {
       setApplicant(appResp.data || null);
 
       const scoreResp = await api.get(`/v1/score?applicant_id=${id}`).catch(() => ({ data: [] }));
-      const scores = Array.isArray(scoreResp.data)
-        ? scoreResp.data.filter((s: any) => s.applicant_id === id)
-        : [];
+      const scores = Array.isArray(scoreResp.data) ? scoreResp.data : [];
       if (scores.length) {
         // NEW-05 FIX: Backend returns DESC order (order_by computed_at.desc()), so scores[0] is the LATEST score.
         // Previously used scores[scores.length - 1], which picked the oldest historical score instead!
@@ -226,10 +231,20 @@ export default function FinancialHealthCardPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, isDemo, language]);
+  }, [id, isDemo, isRestrictedBorrower]);
 
-  // BUG-05 & NEW-04 FIX: loadData is now a stable useCallback triggered when id or language changes.
+  // BUG-05 & NEW-04 FIX: loadData is now a stable useCallback triggered when id changes.
   useEffect(() => { if (id) loadData(); }, [id, loadData]);
+
+  useEffect(() => {
+    if (isDemo && demoNarratives && xai) {
+      const updatedNarrative = demoNarratives[language] || demoNarratives['en'];
+      setXai((prev: any) => prev ? { ...prev, narrative: updatedNarrative } : prev);
+      if (demoXaiPayload) {
+        setDemoXaiPayload((prev: any) => prev ? { ...prev, narrative: updatedNarrative } : prev);
+      }
+    }
+  }, [language, isDemo, demoNarratives]);
 
   async function handleScore() {
     if (!id) return;
@@ -312,7 +327,7 @@ export default function FinancialHealthCardPage() {
         setXai(resp.data);
       }
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'XAI generation failed');
+      setScoringError(e.response?.data?.detail || 'XAI generation failed');
     } finally { setGeneratingXAI(false); }
   }
 
@@ -320,6 +335,35 @@ export default function FinancialHealthCardPage() {
     const sim = simulateScore(values);
     setWhatIfScore(sim);
   }, []);
+
+  if (isRestrictedBorrower) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] p-8 max-w-xl mx-auto text-center font-sans">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-tier-high-risk/15 text-tier-high-risk border border-tier-high-risk/30 mb-5 shadow-sm">
+          <AlertTriangle className="h-8 w-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 tracking-tight font-serif">
+          Role Access Restricted
+        </h2>
+        <p className="text-sm text-[var(--text-secondary)] mb-8 font-medium leading-relaxed">
+          You are currently signed in as a <span className="font-bold text-[var(--text-primary)]">Borrower</span>. You are authorized to inspect only your own verified 360° Financial Health Card (<span className="font-mono font-bold text-[var(--text-primary)]">APP-SURESH</span>). Accessing confidential financial records of other MSMEs requires Bank Underwriter credentials.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+          <button
+            onClick={() => setPersona('credit_officer')}
+            className="btn-gold px-5 py-2.5 text-xs font-bold"
+          >
+            Switch to Credit Officer Role
+          </button>
+          <Link to="/applicants/APP-SURESH/health-card?demo=true">
+            <button className="btn-action px-5 py-2.5 text-xs font-bold">
+              View My Own Health Card
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -343,35 +387,6 @@ export default function FinancialHealthCardPage() {
     return (
       <div className="glass-card p-8 text-center text-sm text-[var(--text-secondary)] font-mono">
         Dossier record not found in system registry.
-      </div>
-    );
-  }
-
-  if (isBorrower && id !== 'APP-SURESH' && !id?.startsWith('DEMO-')) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] p-8 max-w-xl mx-auto text-center font-sans">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-tier-high-risk/15 text-tier-high-risk border border-tier-high-risk/30 mb-5 shadow-sm">
-          <AlertTriangle className="h-8 w-8" />
-        </div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 tracking-tight font-serif">
-          Role Access Restricted
-        </h2>
-        <p className="text-sm text-[var(--text-secondary)] mb-8 font-medium leading-relaxed">
-          You are currently signed in as a <span className="font-bold text-[var(--text-primary)]">Borrower</span>. You are authorized to inspect only your own verified 360° Financial Health Card (<span className="font-mono font-bold text-[var(--text-primary)]">APP-SURESH</span>). Accessing confidential financial records of other MSMEs requires Bank Underwriter credentials.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-          <button
-            onClick={() => setPersona('credit_officer')}
-            className="btn-gold px-5 py-2.5 text-xs font-bold"
-          >
-            Switch to Underwriter Persona
-          </button>
-          <Link to="/applicants/APP-SURESH/health-card?demo=true">
-            <button className="btn-action px-5 py-2.5 text-xs font-bold">
-              View My Own Health Card
-            </button>
-          </Link>
-        </div>
       </div>
     );
   }

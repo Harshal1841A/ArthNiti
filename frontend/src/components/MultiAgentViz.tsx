@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 interface AgentNode {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  icon: React.ReactNode | string;
+  status?: 'idle' | 'processing' | 'complete' | 'error';
+  latencyMs?: number;
 }
 
-const NODES: AgentNode[] = [
+const DEFAULT_NODES: AgentNode[] = [
   { id: 'aa', name: 'AA Telemetry', icon: <Shield className="h-4 w-4" /> },
   { id: 'scoring', name: 'Underwriting AI', icon: <Activity className="h-4 w-4" /> },
   { id: 'xai', name: 'SHAP Auditor', icon: <BrainCircuit className="h-4 w-4" /> },
@@ -16,16 +18,30 @@ const NODES: AgentNode[] = [
   { id: 'decision', name: 'Credit Decision', icon: <CheckCircle2 className="h-4 w-4" /> },
 ];
 
+function renderIcon(icon: React.ReactNode | string) {
+  if (typeof icon !== 'string') return icon;
+  switch (icon) {
+    case 'Shield': return <Shield className="h-4 w-4" />;
+    case 'Activity': return <Activity className="h-4 w-4" />;
+    case 'BrainCircuit': return <BrainCircuit className="h-4 w-4" />;
+    case 'TrendingUp': return <TrendingUp className="h-4 w-4" />;
+    case 'CheckCircle2': return <CheckCircle2 className="h-4 w-4" />;
+    default: return <Activity className="h-4 w-4" />;
+  }
+}
+
 interface MultiAgentVizProps {
-  nodes?: any[];
+  nodes?: AgentNode[];
   activeStage?: string;
   overallLatency?: number;
   isAnimating?: boolean;
 }
 
-export default function MultiAgentViz({ activeStage, isAnimating = false }: MultiAgentVizProps) {
+export default function MultiAgentViz({ nodes, activeStage, overallLatency, isAnimating = false }: MultiAgentVizProps) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [latency, setLatency] = useState(0);
+
+  const displayNodes = (nodes && nodes.length > 0) ? nodes : DEFAULT_NODES;
 
   useEffect(() => {
     if (isAnimating) {
@@ -34,16 +50,18 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
         setActiveIndex(i);
         setLatency((i + 1) * 12);
         i++;
-        if (i >= NODES.length) {
+        if (i >= displayNodes.length) {
           clearInterval(interval);
         }
       }, 800);
       return () => clearInterval(interval);
     } else if (activeStage) {
-      const idx = NODES.findIndex((n) => n.id === activeStage);
+      const idx = displayNodes.findIndex((n) => n.id === activeStage);
       setActiveIndex(idx);
     }
-  }, [isAnimating, activeStage]);
+  }, [isAnimating, activeStage, displayNodes]);
+
+  const displayedLatency = overallLatency !== undefined && overallLatency > 0 ? overallLatency : (latency || 48);
 
   return (
     <div className="glass-card p-6 border border-[var(--border)]">
@@ -54,7 +72,7 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
         </div>
         <div className="text-right">
           <span className="stat-label">EXECUTION LATENCY</span>
-          <span className="font-mono text-sm font-bold text-[var(--accent)]">{latency || 48}MS</span>
+          <span className="font-mono text-sm font-bold text-[var(--accent)]">{displayedLatency}MS</span>
         </div>
       </div>
 
@@ -62,9 +80,10 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
         {/* Connection line - true hairline */}
         <div className="absolute top-6 left-6 right-6 h-[1px] bg-[var(--border)] -translate-y-1/2" />
 
-        {NODES.map((node, index) => {
-          const isActive = index <= activeIndex;
-          const isCurrent = index === activeIndex;
+        {displayNodes.map((node, index) => {
+          const isCurrent = node.status ? node.status === 'processing' : (index === activeIndex);
+          const isComplete = node.status ? node.status === 'complete' : (index < activeIndex);
+          const isActive = isCurrent || isComplete;
 
           const bgColor = isCurrent ? 'rgba(201, 169, 97, 0.12)' : isActive ? 'var(--bg-card-hover)' : 'var(--bg-card)';
 
@@ -80,7 +99,7 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
                 animate={isCurrent ? { scale: [1, 1.05, 1] } : {}}
                 transition={{ duration: 1.5, repeat: isCurrent ? Infinity : 0, ease: 'easeInOut' }}
               >
-                <span style={{ color: isCurrent ? '#C9A961' : isActive ? 'var(--accent, #C9A961)' : 'var(--text-muted)' }}>{node.icon}</span>
+                <span style={{ color: isCurrent ? '#C9A961' : isActive ? 'var(--accent, #C9A961)' : 'var(--text-muted)' }}>{renderIcon(node.icon)}</span>
                 {isCurrent && (
                   <motion.div
                     className="absolute inset-0 rounded-xl border border-[#C9A961]"
@@ -91,7 +110,7 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
               </motion.div>
 
               {/* Data particle */}
-              {isCurrent && index < NODES.length - 1 && (
+              {isCurrent && index < displayNodes.length - 1 && (
                 <motion.div
                   className="absolute top-6 left-12 w-1.5 h-1.5 rounded-full z-20 bg-[#C9A961]"
                   style={{ boxShadow: '0 0 8px rgba(201, 169, 97, 0.8)' }}
@@ -104,8 +123,8 @@ export default function MultiAgentViz({ activeStage, isAnimating = false }: Mult
                 <span className={`block font-sans text-xs tracking-tight ${isActive ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
                   {node.name}
                 </span>
-                <span className={`block font-mono text-[11px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isActive ? 'text-tier-strong font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
-                  {isCurrent ? 'ACTIVE...' : isActive ? 'VERIFIED' : 'IDLE'}
+                <span className={`block font-mono text-[11px] mt-0.5 tracking-[0.05em] uppercase ${isCurrent ? 'text-[var(--accent)] font-bold' : isComplete ? 'text-tier-strong font-bold' : 'text-[var(--text-muted)] font-medium'}`}>
+                  {isCurrent ? 'ACTIVE...' : isComplete ? 'VERIFIED' : 'IDLE'}
                 </span>
               </div>
             </div>

@@ -44,7 +44,7 @@ export default function ReviewQueuePage() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/v1/reviews');
+      const res = await api.get('/v1/reviews?limit=100');
       setReviews(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
       setError('Failed to load underwriting queue.');

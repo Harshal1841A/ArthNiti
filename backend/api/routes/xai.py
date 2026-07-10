@@ -6,7 +6,7 @@ GET  /api/v1/xai              → List XAI narratives
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,15 +43,27 @@ async def generate_xai(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LLM generation failed: {e}")
 
-    xai = XAINarrative(
-        score_id=score_id,
-        narrative=narrative_result["narrative"],
-        model_used=narrative_result["model_used"],
-        cross_check_passed=narrative_result["cross_check_passed"],
-        unsupported_claims=json.dumps(narrative_result["unsupported_claims"]),
-        generation_ms=narrative_result["generation_ms"],
+    existing_res = await db.execute(
+        select(XAINarrative).where(XAINarrative.score_id == score_id).order_by(XAINarrative.created_at.desc()).limit(1)
     )
-    db.add(xai)
+    existing = existing_res.scalar_one_or_none()
+    if existing:
+        existing.narrative = narrative_result["narrative"]
+        existing.model_used = narrative_result["model_used"]
+        existing.cross_check_passed = narrative_result["cross_check_passed"]
+        existing.unsupported_claims = json.dumps(narrative_result["unsupported_claims"])
+        existing.generation_ms = narrative_result["generation_ms"]
+        xai = existing
+    else:
+        xai = XAINarrative(
+            score_id=score_id,
+            narrative=narrative_result["narrative"],
+            model_used=narrative_result["model_used"],
+            cross_check_passed=narrative_result["cross_check_passed"],
+            unsupported_claims=json.dumps(narrative_result["unsupported_claims"]),
+            generation_ms=narrative_result["generation_ms"],
+        )
+        db.add(xai)
     await db.commit()
     await db.refresh(xai)
 
@@ -69,7 +81,7 @@ async def generate_xai(
 async def list_xai(
     applicant_id: str | None = None,
     db: AsyncSession = Depends(get_db),
-    limit: int = 100,
+    limit: int = Query(100, ge=1, le=500),
     _auth: str = Depends(verify_api_key),
 ):
     """List XAI narratives."""
