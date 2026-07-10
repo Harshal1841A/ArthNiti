@@ -42,53 +42,77 @@ export default function ReviewQueuePage() {
     fetchQueue();
   }, []);
 
-  async function fetchQueue() {
+  async function fetchQueue(retries = 4) {
     setLoading(true);
     setError('');
     setIsFallback(false);
-    try {
-      const res = await api.get('/v1/reviews?limit=100');
-      setReviews(Array.isArray(res.data) ? res.data : []);
-    } catch (e: any) {
-      setError('Failed to load underwriting queue — showing placeholder data. Refresh to retry.');
-      setIsFallback(true);
-      // Fallback mock queue for offline/demo if API unavailable
-      setReviews([
-        {
-          review_id: "REV-9012",
-          applicant_id: "MSME-4021",
-          business_name: "Arjun Textiles & Co",
-          score_id: "SCR-8812",
-          score: 620,
-          tier: "WATCH",
-          contributing_factors: [
-            { feature: "debt_to_equity", shap_value: -0.142 },
-            { feature: "cash_flow_volatility", shap_value: -0.089 },
-            { feature: "gst_compliance_score", shap_value: 0.045 }
-          ],
-          status: "pending",
-          created_at: new Date().toISOString()
-        },
-        {
-          review_id: "REV-9013",
-          applicant_id: "MSME-4089",
-          business_name: "Kaveri Agro Exports",
-          score_id: "SCR-8815",
-          score: 540,
-          tier: "HIGH_RISK",
-          contributing_factors: [
-            { feature: "bureau_score", shap_value: -0.210 },
-            { feature: "working_capital_ratio", shap_value: -0.115 }
-          ],
-          status: "in_review",
-          assigned_officer: "Rajesh Verma",
-          notes: "Initial review started. Awaiting bank statement verification.",
-          created_at: new Date(Date.now() - 3600000).toISOString()
+
+    // Trigger seeding in background — idempotent, fires-and-forgets
+    api.post('/v1/demo/seed').catch(() => null);
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await api.get('/v1/reviews?limit=100');
+        const data = Array.isArray(res.data) ? res.data : [];
+
+        if (data.length === 0 && attempt < retries) {
+          // Empty result — background seeding may still be running.
+          // Wait and retry rather than immediately showing placeholder data.
+          setError(`Seeding demo data... (attempt ${attempt + 1}/${retries})`);
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          continue;
         }
-      ]);
-    } finally {
-      setLoading(false);
+
+        setReviews(data);
+        setError('');
+        setLoading(false);
+        return;
+      } catch (e: any) {
+        if (attempt < retries) {
+          setError(`Connecting to queue... (attempt ${attempt + 1}/${retries})`);
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          continue;
+        }
+        // All retries exhausted — show fallback mock data
+        setError('Failed to load underwriting queue — showing placeholder data. Refresh to retry.');
+        setIsFallback(true);
+        setReviews([
+          {
+            review_id: "REV-9012",
+            applicant_id: "MSME-4021",
+            business_name: "Arjun Textiles & Co",
+            score_id: "SCR-8812",
+            score: 620,
+            tier: "WATCH",
+            contributing_factors: [
+              { feature: "debt_to_equity", shap_value: -0.142 },
+              { feature: "cash_flow_volatility", shap_value: -0.089 },
+              { feature: "gst_compliance_score", shap_value: 0.045 }
+            ],
+            status: "pending",
+            created_at: new Date().toISOString()
+          },
+          {
+            review_id: "REV-9013",
+            applicant_id: "MSME-4089",
+            business_name: "Kaveri Agro Exports",
+            score_id: "SCR-8815",
+            score: 540,
+            tier: "HIGH_RISK",
+            contributing_factors: [
+              { feature: "bureau_score", shap_value: -0.210 },
+              { feature: "working_capital_ratio", shap_value: -0.115 }
+            ],
+            status: "in_review",
+            assigned_officer: "Rajesh Verma",
+            notes: "Initial review started. Awaiting bank statement verification.",
+            created_at: new Date(Date.now() - 3600000).toISOString()
+          }
+        ]);
+        break;
+      }
     }
+    setLoading(false);
   }
 
   async function handleAssign(id: string) {
@@ -133,7 +157,7 @@ export default function ReviewQueuePage() {
           <h1 className="text-3xl font-serif text-[var(--text-primary)]">Review <span className="italic">Queue</span>.</h1>
         </div>
         <button
-          onClick={fetchQueue}
+          onClick={() => fetchQueue()}
           disabled={loading}
           className="btn-action"
         >

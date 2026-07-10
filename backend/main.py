@@ -178,9 +178,12 @@ if _DIST.is_dir():
             async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
                 async def _send_with_cache(message):
                     if message["type"] == "http.response.start":
-                        headers = dict(message.get("headers", []))
-                        headers[b"cache-control"] = b"public, max-age=31536000, immutable"
-                        message = {**message, "headers": list(headers.items())}
+                        # ASGI headers are List[Tuple[bytes, bytes]].
+                        # Drop any existing cache-control header and append ours.
+                        raw: list = message.get("headers", [])
+                        filtered = [(k, v) for k, v in raw if k.lower() != b"cache-control"]
+                        filtered.append((b"cache-control", b"public, max-age=31536000, immutable"))
+                        message = {**message, "headers": filtered}
                     await send(message)
                 await super().__call__(scope, receive, _send_with_cache)
 
