@@ -330,7 +330,7 @@ export default function FinancialHealthCardPage() {
     );
   }
 
-  if (error) {
+  if (error && !applicant && !score && !isDemo) {
     return (
       <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-6 text-sm text-tier-high-risk font-mono">
         <div className="font-bold mb-1 uppercase tracking-wider">System Exception</div>
@@ -383,6 +383,12 @@ export default function FinancialHealthCardPage() {
 
   return (
     <div className="space-y-8 font-sans">
+      {error && (
+        <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-4 text-xs text-tier-high-risk font-mono flex items-center justify-between shadow-sm">
+          <div><span className="font-bold uppercase">System Notification:</span> {error}</div>
+          <button onClick={() => setError('')} className="underline hover:text-[var(--text-primary)] font-bold ml-4">Dismiss</button>
+        </div>
+      )}
       {/* Inline fetch error banner */}
       {fetchError && (
         <div className="flex items-start gap-3 rounded-xl border border-tier-watch/30 bg-tier-watch/10 px-5 py-4">

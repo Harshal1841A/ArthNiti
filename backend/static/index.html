@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArthNiti — MSME Financial Health Card</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #0A0B0F;
+        color: #F2F0E9;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      }
+      .splash-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+        padding: 2rem;
+      }
+      .splash-logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: #14151B;
+        border: 1px solid #262832;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .splash-title {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.9rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.5rem 0;
+        color: #F2F0E9;
+      }
+      .splash-title em {
+        color: #C9A961;
+        font-style: italic;
+      }
+      .splash-subtitle {
+        font-size: 0.8rem;
+        color: #8B8D97;
+        font-family: 'JetBrains Mono', monospace;
+        margin: 0 0 2rem 0;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .splash-spinner {
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(201, 169, 97, 0.2);
+        border-top-color: #C9A961;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+      .splash-status {
+        font-size: 0.78rem;
+        color: #8B8D97;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.03em;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.85; transform: scale(0.97); }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DH2rSGI9.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CYyPNJLD.css">
+  </head>
+  <body>
+    <div id="root">
+      <div class="splash-container">
+        <div class="splash-logo">
+          <svg width="38" height="38" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50,24 L14,34 L14,82 L50,74 Z" fill="none" stroke="#C9A961" stroke-width="4"/>
+            <path d="M50,24 L86,34 L86,82 L50,74 Z" fill="#C9A961"/>
+            <line x1="50" y1="24" x2="50" y2="74" stroke="#14151B" stroke-width="3.5"/>
+          </svg>
+        </div>
+        <h1 class="splash-title">Arth<em>Niti</em></h1>
+        <p class="splash-subtitle">Alternate-Data MSME Underwriting</p>
+        <div class="splash-spinner"></div>
+        <div class="splash-status">Waking up underwriting engine...</div>
+      </div>
+    </div>
+  </body>
+</html>

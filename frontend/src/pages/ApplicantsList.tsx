@@ -28,14 +28,14 @@ export default function ApplicantsList() {
   useEffect(() => {
     api.get('/v1/applicants')
       .then(r => setApplicants(Array.isArray(r.data) ? r.data : []))
-      .catch(e => {
-        setError(e.response?.data?.detail || 'Failed to load applicants');
-        // Fallback mock portfolio when offline/demo
+      .catch(() => {
+        // Fallback mock portfolio when offline/demo or API unavailable
         setApplicants([
           { id: "MSME-4021", business_name: "Arjun Textiles & Co", has_bureau_record: true, is_synthetic: false, preferred_language: "EN", created_at: new Date().toISOString() },
           { id: "MSME-4089", business_name: "Kaveri Agro Exports", has_bureau_record: false, is_synthetic: false, preferred_language: "HI", created_at: new Date(Date.now() - 86400000).toISOString() },
           { id: "MSME-4102", business_name: "Vindhya Logistics Pvt Ltd", has_bureau_record: true, is_synthetic: true, preferred_language: "EN", created_at: new Date(Date.now() - 172800000).toISOString() }
         ]);
+        setError('');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -56,7 +56,7 @@ export default function ApplicantsList() {
     );
   }
 
-  if (error) {
+  if (error && (!applicants || applicants.length === 0)) {
     return (
       <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-6 text-sm text-tier-high-risk font-mono">
         <div className="font-bold mb-1 uppercase tracking-wider">System Exception</div>
