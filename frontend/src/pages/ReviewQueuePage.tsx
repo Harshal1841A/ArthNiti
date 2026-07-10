@@ -35,6 +35,8 @@ export default function ReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [actionNotes, setActionNotes] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -43,11 +45,13 @@ export default function ReviewQueuePage() {
   async function fetchQueue() {
     setLoading(true);
     setError('');
+    setIsFallback(false);
     try {
       const res = await api.get('/v1/reviews?limit=100');
       setReviews(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
-      setError('Failed to load underwriting queue.');
+      setError('Failed to load underwriting queue — showing placeholder data. Refresh to retry.');
+      setIsFallback(true);
       // Fallback mock queue for offline/demo if API unavailable
       setReviews([
         {
@@ -89,21 +93,31 @@ export default function ReviewQueuePage() {
 
   async function handleAssign(id: string) {
     if (!user) return;
+    if (isFallback) {
+      setActionError('Cannot assign — queue loaded from offline fallback. Refresh the page to connect to the live database.');
+      return;
+    }
+    setActionError('');
     try {
       const res = await api.post(`/v1/reviews/${id}/assign`, { officer_name: user.name });
       setReviews(prev => prev.map(item => item.review_id === id ? res.data : item));
-    } catch (e) {
-      alert('Assignment failed');
+    } catch (e: any) {
+      setActionError(e.response?.data?.detail || 'Assignment failed — review item not found in database.');
     }
   }
 
   async function handleResolve(id: string, decision: 'approved' | 'rejected') {
+    if (isFallback) {
+      setActionError('Cannot resolve — queue loaded from offline fallback. Refresh the page to connect to the live database.');
+      return;
+    }
     const notes = actionNotes[id] || `${decision.toUpperCase()} by ${user?.name || 'Underwriter'}`;
+    setActionError('');
     try {
       const res = await api.post(`/v1/reviews/${id}/resolve`, { decision, notes });
       setReviews(prev => prev.map(item => item.review_id === id ? res.data : item));
-    } catch (e) {
-      alert('Resolution failed');
+    } catch (e: any) {
+      setActionError(e.response?.data?.detail || 'Resolution failed.');
     }
   }
 
@@ -147,6 +161,16 @@ export default function ReviewQueuePage() {
         <div className="rounded-xl border border-tier-high-risk/30 bg-tier-high-risk/10 p-5 text-sm text-tier-high-risk flex items-start gap-3 font-mono">
           <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           {error}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-xl border border-tier-watch/40 bg-tier-watch/10 p-4 text-sm text-tier-watch flex items-start justify-between gap-3 font-mono">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            {actionError}
+          </div>
+          <button onClick={() => setActionError('')} className="text-tier-watch/60 hover:text-tier-watch text-lg leading-none shrink-0">×</button>
         </div>
       )}
 
@@ -223,7 +247,12 @@ export default function ReviewQueuePage() {
                     {user?.role !== 'APPLICANT' && !['approved', 'rejected'].includes(item.status) && (
                       <div className="space-y-3">
                         {!item.assigned_officer ? (
-                          <button onClick={() => handleAssign(item.review_id)} className="w-full btn-gold py-2.5 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleAssign(item.review_id)}
+                            disabled={isFallback}
+                            title={isFallback ? 'Refresh the page to load live data before assigning' : 'Claim & Assign to Me'}
+                            className="w-full btn-gold py-2.5 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
                             <UserCheck className="h-4 w-4" /> Claim & Assign to Me
                           </button>
                         ) : (
@@ -232,13 +261,24 @@ export default function ReviewQueuePage() {
                               placeholder="Rationale for determination..."
                               value={actionNotes[item.review_id] || ''}
                               onChange={e => setActionNotes({ ...actionNotes, [item.review_id]: e.target.value })}
-                              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-primary)] font-sans"
+                              disabled={isFallback}
+                              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-primary)] font-sans disabled:opacity-40"
                             />
                             <div className="flex gap-2">
-                              <button onClick={() => handleResolve(item.review_id, 'approved')} className="flex-1 py-2 rounded-xl bg-tier-strong text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleResolve(item.review_id, 'approved')}
+                                disabled={isFallback}
+                                title={isFallback ? 'Refresh the page to load live data before resolving' : 'Approve'}
+                                className="flex-1 py-2 rounded-xl bg-tier-strong text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                               </button>
-                              <button onClick={() => handleResolve(item.review_id, 'rejected')} className="flex-1 py-2 rounded-xl bg-tier-high-risk text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleResolve(item.review_id, 'rejected')}
+                                disabled={isFallback}
+                                title={isFallback ? 'Refresh the page to load live data before resolving' : 'Reject'}
+                                className="flex-1 py-2 rounded-xl bg-tier-high-risk text-white font-mono text-xs font-bold hover:opacity-90 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
                                 <XCircle className="h-3.5 w-3.5" /> Reject
                               </button>
                             </div>
