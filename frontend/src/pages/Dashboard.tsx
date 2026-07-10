@@ -194,11 +194,12 @@ export default function Dashboard() {
   const [animatingAgent] = useState(false);
   const navigate = useNavigate();
 
-  if (currentPersona === 'applicant') {
-    return <BorrowerOverview />;
-  }
-
   useEffect(() => {
+    if (currentPersona === 'applicant') {
+      setLoading(false);
+      return;
+    }
+
     async function load() {
       try {
         // Ensure demo personas are seeded before reading stats.
@@ -223,7 +224,11 @@ export default function Dashboard() {
       }
     }
     load();
-  }, []);
+  }, [currentPersona]);
+
+  if (currentPersona === 'applicant') {
+    return <BorrowerOverview />;
+  }
 
   const handleDemoPersonaClick = (id: string) => {
     navigate(`/applicants/${id}?demo=true`);
