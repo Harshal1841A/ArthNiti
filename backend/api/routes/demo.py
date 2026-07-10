@@ -207,51 +207,52 @@ async def seed_demo_personas_db(db: AsyncSession) -> int:
             await db.commit()
             await db.refresh(score)
 
-        # Upsert XAI
+        # Upsert XAI, AdapterFetchLog, ReviewQueue in one flush — avoids 3 serial commits per persona
+        needs_commit = False
+
         result = await db.execute(
             select(XAINarrative).where(XAINarrative.score_id == score.id).limit(1)
         )
         if not result.scalar_one_or_none():
-            xai = XAINarrative(
+            db.add(XAINarrative(
                 score_id=score.id,
                 narrative=persona["xai_narrative"]["en"],
                 cross_check_passed=True,
                 unsupported_claims="[]",
                 model_used="demo_pre_generated",
                 generation_ms=0,
-            )
-            db.add(xai)
-            await db.commit()
+            ))
+            needs_commit = True
 
-        # Upsert adapter fetch log so decision trail shows DATA_FETCHED complete
         result = await db.execute(
             select(AdapterFetchLog).where(AdapterFetchLog.applicant_id == app["id"]).limit(1)
         )
         if not result.scalar_one_or_none():
-            fetch_log = AdapterFetchLog(
+            db.add(AdapterFetchLog(
                 applicant_id=app["id"],
                 adapter_type="aa_demo",
                 is_mocked=True,
                 fetch_status="SUCCESS",
                 fields_populated_count=13,
-            )
-            db.add(fetch_log)
-            await db.commit()
+            ))
+            needs_commit = True
 
-        # Upsert ReviewQueue item if persona requires review or has WATCH / HIGH_RISK tier
         if sc["tier"] in ("WATCH", "HIGH_RISK") or persona.get("routing", {}).get("requires_review"):
             result = await db.execute(
                 select(ReviewQueue).where(ReviewQueue.applicant_id == app["id"]).limit(1)
             )
             if not result.scalar_one_or_none():
-                review_item = ReviewQueue(
+                db.add(ReviewQueue(
                     applicant_id=app["id"],
                     score_id=score.id,
                     status="pending" if sc["tier"] == "WATCH" else "in_review",
-                    notes=f"Auto-flagged by F9 Routing: {sc['tier']} risk profile."
-                )
-                db.add(review_item)
-                await db.commit()
+                    notes=f"Auto-flagged by F9 Routing: {sc['tier']} risk profile.",
+                ))
+                needs_commit = True
+
+        # Single commit for XAI + fetch log + review queue instead of 3 separate round-trips
+        if needs_commit:
+            await db.commit()
 
     return len(DEMO_PERSONAS)
 

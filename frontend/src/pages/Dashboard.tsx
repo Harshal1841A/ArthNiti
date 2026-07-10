@@ -202,10 +202,10 @@ export default function Dashboard() {
 
     async function load() {
       try {
-        // Ensure demo personas are seeded before reading stats.
-        // This is a no-op if already seeded (idempotent endpoint).
-        // Silently ignored if DEMO_MODE is off on the server.
-        await api.post('/v1/demo/seed').catch(() => null);
+        // Fire seed in background — it is idempotent and the data reads degrade
+        // gracefully to empty arrays if seeding isn't done yet. Awaiting it
+        // serially was adding 1-3s of blocking latency on every dashboard load.
+        api.post('/v1/demo/seed').catch(() => null);
 
         const [cov, allScores, allApplicants] = await Promise.all([
           api.get('/v1/coverage-stats').then(r => r.data).catch(() => ({ total_applicants: 0, coverage_improvement_pct: 0 })),

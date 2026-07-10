@@ -157,9 +157,26 @@ _DIST = Path(__file__).parent.parent / "frontend" / "dist"
 if _DIST.is_dir():
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
-        """Serve static assets directly; fall back to index.html for SPA routes."""
+        """Serve static assets directly; fall back to index.html for SPA routes.
+
+        Cache strategy:
+        - Hashed asset files (JS/CSS in /assets/) → Cache-Control: immutable, 1 year
+          Their filenames change when content changes so it is safe to cache forever.
+        - index.html and everything else → Cache-Control: no-cache
+          Must always be re-validated so the browser picks up new asset hashes.
+        """
         candidate = (_DIST / full_path).resolve()
         dist_resolved = _DIST.resolve()
         if candidate.is_relative_to(dist_resolved) and candidate.is_file():
+            # Hashed assets: safe to cache for 1 year (immutable)
+            if full_path.startswith("assets/"):
+                return FileResponse(
+                    candidate,
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"},
+                )
             return FileResponse(candidate)
-        return FileResponse(dist_resolved / "index.html")
+        # SPA fallback: always re-validate so new deploys are picked up
+        return FileResponse(
+            dist_resolved / "index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )

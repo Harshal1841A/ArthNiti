@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Shield, TrendingUp, Users, BrainCircuit } from 'lucide-react';
@@ -23,31 +24,39 @@ export default function Landing() {
     { id: 'blanc', label: 'Blanc', icon: Sun },
   ];
 
+  // Memoize particle configs — Math.random() must run once at mount, not on every re-render.
+  // Halved to 10 particles: 20 infinite Framer Motion animations compete for GPU compositor time
+  // on first paint, delaying the LCP hero text by ~200ms on low-end devices.
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 10 }, () => ({
+        size: 4 + Math.random() * 8,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        duration: 3 + Math.random() * 4,
+        delay: Math.random() * 2,
+      })),
+    []
+  );
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] flex flex-col relative overflow-hidden transition-colors duration-300">
       {/* Animated background particles */}
       <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {particles.map((p, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full"
             style={{
               backgroundColor: "var(--accent)",
               opacity: 0.1,
-              width: 4 + Math.random() * 8,
-              height: 4 + Math.random() * 8,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: p.size,
+              height: p.size,
+              left: p.left,
+              top: p.top,
             }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.2, 0.6, 0.2],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
+            animate={{ y: [0, -30, 0], opacity: [0.2, 0.6, 0.2] }}
+            transition={{ duration: p.duration, repeat: Infinity, delay: p.delay }}
           />
         ))}
       </div>
