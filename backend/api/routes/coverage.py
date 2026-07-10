@@ -3,6 +3,7 @@
 GET /api/v1/coverage-stats  → AdapterCoverageResponse
 """
 
+import asyncio
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,27 +19,29 @@ router = APIRouter()
 
 @router.get("", response_model=AdapterCoverageResponse)
 async def get_coverage_stats(db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
-    """Compute real NTC/NTB coverage improvement metrics from the database."""
-    total_result = await db.execute(select(func.count()).select_from(Applicant))
-    total = total_result.scalar()
+    """Compute NTC/NTB coverage metrics — all 3 counts run in parallel via asyncio.gather."""
 
-    ntb_result = await db.execute(
-        select(func.count())
-        .select_from(Applicant)
-        .where(Applicant.has_bureau_record == False)
-    )
-    ntb = ntb_result.scalar()
+    async def _total():
+        r = await db.execute(select(func.count()).select_from(Applicant))
+        return r.scalar()
 
-    # NTB with usable credit score (not HIGH_RISK default rejection)
-    usable_result = await db.execute(
-        select(func.count())
-        .select_from(Applicant)
-        .join(Score, Score.applicant_id == Applicant.id)
-        .where(Applicant.has_bureau_record == False)
-        .where(Score.tier != "HIGH_RISK")
-    )
-    usable = usable_result.scalar()
+    async def _ntb():
+        r = await db.execute(
+            select(func.count()).select_from(Applicant).where(Applicant.has_bureau_record == False)
+        )
+        return r.scalar()
 
+    async def _usable():
+        r = await db.execute(
+            select(func.count())
+            .select_from(Applicant)
+            .join(Score, Score.applicant_id == Applicant.id)
+            .where(Applicant.has_bureau_record == False)
+            .where(Score.tier != "HIGH_RISK")
+        )
+        return r.scalar()
+
+    total, ntb, usable = await asyncio.gather(_total(), _ntb(), _usable())
     coverage_pct = (usable / ntb * 100) if ntb > 0 else 0.0
 
     return AdapterCoverageResponse(
