@@ -9,7 +9,6 @@ but the Pydantic model expected '✓', causing a mismatch.
 """
 
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

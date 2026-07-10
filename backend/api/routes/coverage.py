@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_db, verify_api_key
 from backend.api.models import AdapterCoverageResponse
 from backend.config import get_settings
-from backend.database.models import Applicant, NormalizedFeatures, Score
+from backend.database.models import Applicant, Score
 
 _settings = get_settings()
 router = APIRouter()

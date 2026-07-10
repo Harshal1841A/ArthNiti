@@ -7,7 +7,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from backend.core.feature_schema import DataSourceType
 
 
 class ApplicantCreateRequest(BaseModel):

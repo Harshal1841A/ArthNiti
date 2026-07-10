@@ -5,8 +5,6 @@ onboarded through RBI's own process. This stub proves the adapter SHAPE
 is ready; it does not connect to a real ULI endpoint.
 """
 
-from typing import Optional
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 

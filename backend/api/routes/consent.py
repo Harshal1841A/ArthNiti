@@ -8,7 +8,7 @@ POST /api/v1/consent/aa/fetch             → Fetch + normalize AA data
 import json
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,6 @@ from backend.adapters.aa_adapter import (
 from backend.api.deps import get_db, verify_api_key
 from backend.api.models import ConsentListItem, ConsentRequestPayload, ConsentStatusResponse
 from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures
-from backend.core.feature_schema import DataSourceType
 
 router = APIRouter()
 

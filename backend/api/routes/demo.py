@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from backend.api.deps import get_db
-from backend.api.models import ConsentStatusResponse, ScoreResponse, DocumentUploadStatusResponse
+from backend.api.models import ConsentStatusResponse, ScoreResponse
 from backend.config import get_settings
 from backend.data.demo_personas import ALIAS_MAP, DEMO_PERSONAS, get_persona_by_id, list_persona_summaries
 from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures, ReviewQueue, Score, XAINarrative

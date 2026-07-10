@@ -10,7 +10,6 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -159,7 +158,8 @@ if _DIST.is_dir():
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
         """Serve static assets directly; fall back to index.html for SPA routes."""
-        candidate = _DIST / full_path
-        if candidate.is_file():
+        candidate = (_DIST / full_path).resolve()
+        dist_resolved = _DIST.resolve()
+        if candidate.is_relative_to(dist_resolved) and candidate.is_file():
             return FileResponse(candidate)
-        return FileResponse(_DIST / "index.html")
+        return FileResponse(dist_resolved / "index.html")

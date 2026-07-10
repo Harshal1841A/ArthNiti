@@ -19,7 +19,6 @@ from backend.adapters.document_fallback_adapter import parse_document_to_feature
 from backend.api.deps import get_db, get_llm_client, verify_api_key
 from backend.api.models import DocumentUploadStatusResponse
 from backend.database.models import Applicant, DocumentUpload, NormalizedFeatures
-from backend.core.feature_schema import DataSourceType
 from backend.database.db import _AsyncSessionLocal
 from backend.limiter import limiter
 
@@ -104,8 +103,8 @@ async def upload_document(
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
 
-    # Validate extension
-    ext = f".{file.filename.split('.')[-1].lower()}" if '.' in file.filename else ""
+    filename_str = file.filename or "uploaded_file"
+    ext = f".{filename_str.split('.')[-1].lower()}" if '.' in filename_str else ""
     if file.content_type not in ALLOWED_TYPES and ext not in ALLOWED_EXTS:
         raise HTTPException(
             status_code=415,
@@ -130,7 +129,7 @@ async def upload_document(
     # alternative format. Previously two different ID formats existed for the same entity.
     upload = DocumentUpload(
         applicant_id=applicant_id,
-        filename=file.filename,
+        filename=filename_str,
         content_type=file.content_type or "application/octet-stream",
     )
     db.add(upload)
@@ -143,7 +142,7 @@ async def upload_document(
         upload_id,
         applicant_id,
         file_bytes,
-        file.filename,
+        filename_str,
         file.content_type or "application/octet-stream",
     )
 

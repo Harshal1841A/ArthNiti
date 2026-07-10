@@ -14,7 +14,6 @@ import logging
 import httpx
 
 from backend.config import get_settings
-from backend.core.llm_client import LLMClient  # noqa: F401 — may be used for future extensions
 
 _settings = get_settings()
 

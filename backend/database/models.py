@@ -23,7 +23,7 @@ from sqlalchemy import (
     Boolean,
     func,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 

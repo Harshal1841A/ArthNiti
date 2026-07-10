@@ -11,6 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.llm_client import LLMClient, get_llm_client
 from backend.database.db import get_db
 
+__all__ = [
+    "get_db",
+    "get_llm_client",
+    "LLMClient",
+    "AsyncSession",
+    "verify_api_key",
+    "get_scoring_core",
+]
+
 security = HTTPBearer(auto_error=False)
 
 def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
