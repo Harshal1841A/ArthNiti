@@ -199,22 +199,34 @@ export default function Dashboard() {
       return;
     }
 
-    async function load() {
+    async function load(retries = 2) {
       try {
         // Ensure demo personas are seeded before fetching metrics so cold container
         // starts populate all dashboard KPIs immediately instead of showing 0s.
         await api.post('/v1/demo/seed').catch(() => null);
 
-        const [cov, allScores, allApplicants] = await Promise.all([
-          api.get('/v1/coverage-stats').then(r => r.data).catch(() => ({ total_applicants: 0, coverage_improvement_pct: 0 })),
-          api.get('/v1/score').then(r => r.data).catch(() => []),
-          api.get('/v1/applicants').then(r => r.data).catch(() => []),
-        ]);
-        setStats(cov);
-        setApplicants(allApplicants.slice(0, 5));
-        const tierCounts: Record<string, number> = { STRONG: 0, ADEQUATE: 0, WATCH: 0, HIGH_RISK: 0 };
-        allScores.forEach((s: any) => { if (tierCounts[s.tier] !== undefined) tierCounts[s.tier]++; });
-        setScores(Object.entries(tierCounts).map(([tier, count]) => ({ tier, count })));
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          const [cov, allScores, allApplicants] = await Promise.all([
+            api.get('/v1/coverage-stats').then(r => r.data).catch(() => ({ total_applicants: 0, coverage_improvement_pct: 0 })),
+            api.get('/v1/score').then(r => r.data).catch(() => []),
+            api.get('/v1/applicants').then(r => r.data).catch(() => []),
+          ]);
+
+          const scoresArr = Array.isArray(allScores) ? allScores : [];
+          const applicantsArr = Array.isArray(allApplicants) ? allApplicants : [];
+
+          if ((applicantsArr.length === 0 || scoresArr.length === 0) && attempt < retries) {
+            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+            continue;
+          }
+
+          setStats(cov);
+          setApplicants(applicantsArr.slice(0, 5));
+          const tierCounts: Record<string, number> = { STRONG: 0, ADEQUATE: 0, WATCH: 0, HIGH_RISK: 0 };
+          scoresArr.forEach((s: any) => { if (tierCounts[s.tier] !== undefined) tierCounts[s.tier]++; });
+          setScores(Object.entries(tierCounts).map(([tier, count]) => ({ tier, count })));
+          break;
+        }
       } catch (e: any) {
         setError(e.response?.data?.detail || 'Failed to load dashboard');
       } finally {

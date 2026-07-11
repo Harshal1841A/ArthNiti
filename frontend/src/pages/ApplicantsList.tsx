@@ -26,18 +26,37 @@ export default function ApplicantsList() {
   const [filter, setFilter] = useState<'all' | 'ntb' | 'synthetic'>('all');
 
   useEffect(() => {
-    api.get('/v1/applicants')
-      .then(r => setApplicants(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {
-        // Fallback mock portfolio when offline/demo or API unavailable
-        setApplicants([
-          { id: "MSME-4021", business_name: "Arjun Textiles & Co", has_bureau_record: true, is_synthetic: false, preferred_language: "EN", created_at: new Date().toISOString() },
-          { id: "MSME-4089", business_name: "Kaveri Agro Exports", has_bureau_record: false, is_synthetic: false, preferred_language: "HI", created_at: new Date(Date.now() - 86400000).toISOString() },
-          { id: "MSME-4102", business_name: "Vindhya Logistics Pvt Ltd", has_bureau_record: true, is_synthetic: true, preferred_language: "EN", created_at: new Date(Date.now() - 172800000).toISOString() }
-        ]);
-        setError('');
-      })
-      .finally(() => setLoading(false));
+    async function load(retries = 2) {
+      await api.post('/v1/demo/seed').catch(() => null);
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const r = await api.get('/v1/applicants');
+          const data = Array.isArray(r.data) ? r.data : [];
+          if (data.length === 0 && attempt < retries) {
+            await new Promise(res => setTimeout(res, 600 * (attempt + 1)));
+            continue;
+          }
+          setApplicants(data.length > 0 ? data : [
+            { id: "MSME-4021", business_name: "Arjun Textiles & Co", has_bureau_record: true, is_synthetic: false, preferred_language: "EN", created_at: new Date().toISOString() },
+            { id: "MSME-4089", business_name: "Kaveri Agro Exports", has_bureau_record: false, is_synthetic: false, preferred_language: "HI", created_at: new Date(Date.now() - 86400000).toISOString() },
+            { id: "MSME-4102", business_name: "Vindhya Logistics Pvt Ltd", has_bureau_record: true, is_synthetic: true, preferred_language: "EN", created_at: new Date(Date.now() - 172800000).toISOString() }
+          ]);
+          setError('');
+          break;
+        } catch {
+          if (attempt === retries) {
+            setApplicants([
+              { id: "MSME-4021", business_name: "Arjun Textiles & Co", has_bureau_record: true, is_synthetic: false, preferred_language: "EN", created_at: new Date().toISOString() },
+              { id: "MSME-4089", business_name: "Kaveri Agro Exports", has_bureau_record: false, is_synthetic: false, preferred_language: "HI", created_at: new Date(Date.now() - 86400000).toISOString() },
+              { id: "MSME-4102", business_name: "Vindhya Logistics Pvt Ltd", has_bureau_record: true, is_synthetic: true, preferred_language: "EN", created_at: new Date(Date.now() - 172800000).toISOString() }
+            ]);
+            setError('');
+          }
+        }
+      }
+      setLoading(false);
+    }
+    load();
   }, []);
 
   const filtered = (applicants || []).filter(a => {
