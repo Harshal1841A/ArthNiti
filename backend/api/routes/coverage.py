@@ -19,29 +19,24 @@ router = APIRouter()
 
 @router.get("", response_model=AdapterCoverageResponse)
 async def get_coverage_stats(db: AsyncSession = Depends(get_db), _auth: str = Depends(verify_api_key)):
-    """Compute NTC/NTB coverage metrics — all 3 counts run in parallel via asyncio.gather."""
+    # Executed sequentially to adhere to SQLAlchemy AsyncSession single-fiber contract
+    total_res = await db.execute(select(func.count()).select_from(Applicant))
+    total = total_res.scalar() or 0
 
-    async def _total():
-        r = await db.execute(select(func.count()).select_from(Applicant))
-        return r.scalar()
+    ntb_res = await db.execute(
+        select(func.count()).select_from(Applicant).where(Applicant.has_bureau_record == False)
+    )
+    ntb = ntb_res.scalar() or 0
 
-    async def _ntb():
-        r = await db.execute(
-            select(func.count()).select_from(Applicant).where(Applicant.has_bureau_record == False)
-        )
-        return r.scalar()
+    usable_res = await db.execute(
+        select(func.count())
+        .select_from(Applicant)
+        .join(Score, Score.applicant_id == Applicant.id)
+        .where(Applicant.has_bureau_record == False)
+        .where(Score.tier != "HIGH_RISK")
+    )
+    usable = usable_res.scalar() or 0
 
-    async def _usable():
-        r = await db.execute(
-            select(func.count())
-            .select_from(Applicant)
-            .join(Score, Score.applicant_id == Applicant.id)
-            .where(Applicant.has_bureau_record == False)
-            .where(Score.tier != "HIGH_RISK")
-        )
-        return r.scalar()
-
-    total, ntb, usable = await asyncio.gather(_total(), _ntb(), _usable())
     coverage_pct = (usable / ntb * 100) if ntb > 0 else 0.0
 
     return AdapterCoverageResponse(

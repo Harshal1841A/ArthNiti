@@ -9,11 +9,13 @@ from backend.data.demo_personas import ALIAS_MAP, DEMO_PERSONAS, get_persona_by_
 from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures, ReviewQueue, Score, XAINarrative
 from backend.adapters.ocen_adapter import generate_offers_for_score
 from backend.limiter import limiter
+import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 _settings = get_settings()
+_seed_lock = asyncio.Lock()
 
 # NOTE ON AUTH IN THIS FILE: every route below is gated by DEMO_MODE, not by
 # verify_api_key like the real /api/v1/applicants, /consent, /score routes.
@@ -125,148 +127,150 @@ async def seed_demo_personas_db(db: AsyncSession) -> int:
     if not _settings.DEMO_MODE:
         return 0
 
-    # BUG-B7 FIX: Fast-path must also verify ReviewQueue rows exist for WATCH/HIGH_RISK
-    # personas. Previously only Score existence was checked — a partial DB wipe could
-    # leave scores intact but review queue empty, and this fast-path would return early
-    # silently, leaving the underwriting queue always empty.
-    persona_ids = [p["applicant"]["id"] for p in DEMO_PERSONAS]
-    watch_high_risk_ids = [
-        p["applicant"]["id"] for p in DEMO_PERSONAS
-        if p["score_result"]["tier"] in ("WATCH", "HIGH_RISK") or p.get("routing", {}).get("requires_review")
-    ]
-    scores_res = await db.execute(
-        select(func.count(func.distinct(Score.applicant_id))).where(Score.applicant_id.in_(persona_ids))
-    )
-    if scores_res.scalar() == len(DEMO_PERSONAS):
-        # Verify review queue completeness too
-        rq_res = await db.execute(
-            select(func.count(func.distinct(ReviewQueue.applicant_id))).where(ReviewQueue.applicant_id.in_(watch_high_risk_ids))
+    async with _seed_lock:
+
+        # BUG-B7 FIX: Fast-path must also verify ReviewQueue rows exist for WATCH/HIGH_RISK
+        # personas. Previously only Score existence was checked — a partial DB wipe could
+        # leave scores intact but review queue empty, and this fast-path would return early
+        # silently, leaving the underwriting queue always empty.
+        persona_ids = [p["applicant"]["id"] for p in DEMO_PERSONAS]
+        watch_high_risk_ids = [
+            p["applicant"]["id"] for p in DEMO_PERSONAS
+            if p["score_result"]["tier"] in ("WATCH", "HIGH_RISK") or p.get("routing", {}).get("requires_review")
+        ]
+        scores_res = await db.execute(
+            select(func.count(func.distinct(Score.applicant_id))).where(Score.applicant_id.in_(persona_ids))
         )
-        if rq_res.scalar() >= len(watch_high_risk_ids):
-            return len(DEMO_PERSONAS)
-
-    for persona in DEMO_PERSONAS:
-        app = persona["applicant"]
-        feat = persona["features"]
-        sc = persona["score_result"]
-
-        # Upsert applicant
-        existing = await db.get(Applicant, app["id"])
-        if not existing:
-            applicant = Applicant(
-                id=app["id"],
-                business_name=app["business_name"],
-                has_bureau_record=app["has_bureau_record"],
-                is_synthetic=app["is_synthetic"],
-                preferred_language=app["preferred_language"],
+        if scores_res.scalar() == len(DEMO_PERSONAS):
+            # Verify review queue completeness too
+            rq_res = await db.execute(
+                select(func.count(func.distinct(ReviewQueue.applicant_id))).where(ReviewQueue.applicant_id.in_(watch_high_risk_ids))
             )
-            db.add(applicant)
-            await db.commit()
-            await db.refresh(applicant)
+            if rq_res.scalar() >= len(watch_high_risk_ids):
+                return len(DEMO_PERSONAS)
 
-        # Upsert features
-        result = await db.execute(
-            select(NormalizedFeatures)
-            .where(NormalizedFeatures.applicant_id == app["id"])
-            .order_by(NormalizedFeatures.computed_at.desc())
-            .limit(1)
-        )
-        nf = result.scalar_one_or_none()
-        if not nf:
-            nf = NormalizedFeatures(
-                applicant_id=app["id"],
-                data_sources_used=json.dumps([ds.value for ds in feat["data_sources_used"]]),
-                feature_vector_json=json.dumps({
-                    "applicant_id": app["id"],
-                    "data_sources_used": [ds.value for ds in feat["data_sources_used"]],
-                    "avg_monthly_inflow": feat["avg_monthly_inflow"],
-                    "inflow_volatility_coefficient": feat["inflow_volatility_coefficient"],
-                    "avg_closing_balance": feat["avg_closing_balance"],
-                    "days_with_negative_balance_90d": feat["days_with_negative_balance_90d"],
-                    "existing_emi_to_inflow_ratio": feat["existing_emi_to_inflow_ratio"],
-                    "bounce_count_90d": feat["bounce_count_90d"],
-                    "txn_count_30d": feat["txn_count_30d"],
-                    "unique_counterparties_30d": feat["unique_counterparties_30d"],
-                    "payment_time_consistency_score": feat["payment_time_consistency_score"],
-                    "gst_filing_regularity_12mo": feat["gst_filing_regularity_12mo"],
-                    "gst_turnover_yoy_growth": feat["gst_turnover_yoy_growth"],
-                    "epfo_payroll_headcount_trend": feat["epfo_payroll_headcount_trend"],
-                    "had_bureau_record": feat["had_bureau_record"],
-                    "data_completeness_pct": feat["data_completeness_pct"],
-                }),
-                data_completeness_pct=feat["data_completeness_pct"],
-            )
-            db.add(nf)
-            await db.commit()
-            await db.refresh(nf)
+        for persona in DEMO_PERSONAS:
+            app = persona["applicant"]
+            feat = persona["features"]
+            sc = persona["score_result"]
 
-        # Upsert score
-        result = await db.execute(
-            select(Score).where(Score.applicant_id == app["id"]).order_by(Score.computed_at.desc()).limit(1)
-        )
-        score = result.scalar_one_or_none()
-        if not score:
-            score = Score(
-                applicant_id=app["id"],
-                normalized_features_id=nf.id,
-                score=sc["score"],
-                tier=sc["tier"],
-                contributing_factors_json=json.dumps(sc["contributing_factors"]),
-                inference_ms=sc["inference_ms"],
-                model_version=sc["model_version"],
-            )
-            db.add(score)
-            await db.commit()
-            await db.refresh(score)
+            # Upsert applicant
+            existing = await db.get(Applicant, app["id"])
+            if not existing:
+                applicant = Applicant(
+                    id=app["id"],
+                    business_name=app["business_name"],
+                    has_bureau_record=app["has_bureau_record"],
+                    is_synthetic=app["is_synthetic"],
+                    preferred_language=app["preferred_language"],
+                )
+                db.add(applicant)
+                await db.commit()
+                await db.refresh(applicant)
 
-        # Upsert XAI, AdapterFetchLog, ReviewQueue in one flush — avoids 3 serial commits per persona
-        needs_commit = False
-
-        result = await db.execute(
-            select(XAINarrative).where(XAINarrative.score_id == score.id).limit(1)
-        )
-        if not result.scalar_one_or_none():
-            db.add(XAINarrative(
-                score_id=score.id,
-                narrative=persona["xai_narrative"]["en"],
-                cross_check_passed=True,
-                unsupported_claims="[]",
-                model_used="demo_pre_generated",
-                generation_ms=0,
-            ))
-            needs_commit = True
-
-        result = await db.execute(
-            select(AdapterFetchLog).where(AdapterFetchLog.applicant_id == app["id"]).limit(1)
-        )
-        if not result.scalar_one_or_none():
-            db.add(AdapterFetchLog(
-                applicant_id=app["id"],
-                adapter_type="aa_demo",
-                is_mocked=True,
-                fetch_status="SUCCESS",
-                fields_populated_count=13,
-            ))
-            needs_commit = True
-
-        if sc["tier"] in ("WATCH", "HIGH_RISK") or persona.get("routing", {}).get("requires_review"):
+            # Upsert features
             result = await db.execute(
-                select(ReviewQueue).where(ReviewQueue.applicant_id == app["id"]).limit(1)
+                select(NormalizedFeatures)
+                .where(NormalizedFeatures.applicant_id == app["id"])
+                .order_by(NormalizedFeatures.computed_at.desc())
+                .limit(1)
+            )
+            nf = result.scalar_one_or_none()
+            if not nf:
+                nf = NormalizedFeatures(
+                    applicant_id=app["id"],
+                    data_sources_used=json.dumps([ds.value for ds in feat["data_sources_used"]]),
+                    feature_vector_json=json.dumps({
+                        "applicant_id": app["id"],
+                        "data_sources_used": [ds.value for ds in feat["data_sources_used"]],
+                        "avg_monthly_inflow": feat["avg_monthly_inflow"],
+                        "inflow_volatility_coefficient": feat["inflow_volatility_coefficient"],
+                        "avg_closing_balance": feat["avg_closing_balance"],
+                        "days_with_negative_balance_90d": feat["days_with_negative_balance_90d"],
+                        "existing_emi_to_inflow_ratio": feat["existing_emi_to_inflow_ratio"],
+                        "bounce_count_90d": feat["bounce_count_90d"],
+                        "txn_count_30d": feat["txn_count_30d"],
+                        "unique_counterparties_30d": feat["unique_counterparties_30d"],
+                        "payment_time_consistency_score": feat["payment_time_consistency_score"],
+                        "gst_filing_regularity_12mo": feat["gst_filing_regularity_12mo"],
+                        "gst_turnover_yoy_growth": feat["gst_turnover_yoy_growth"],
+                        "epfo_payroll_headcount_trend": feat["epfo_payroll_headcount_trend"],
+                        "had_bureau_record": feat["had_bureau_record"],
+                        "data_completeness_pct": feat["data_completeness_pct"],
+                    }),
+                    data_completeness_pct=feat["data_completeness_pct"],
+                )
+                db.add(nf)
+                await db.commit()
+                await db.refresh(nf)
+
+            # Upsert score
+            result = await db.execute(
+                select(Score).where(Score.applicant_id == app["id"]).order_by(Score.computed_at.desc()).limit(1)
+            )
+            score = result.scalar_one_or_none()
+            if not score:
+                score = Score(
+                    applicant_id=app["id"],
+                    normalized_features_id=nf.id,
+                    score=sc["score"],
+                    tier=sc["tier"],
+                    contributing_factors_json=json.dumps(sc["contributing_factors"]),
+                    inference_ms=sc["inference_ms"],
+                    model_version=sc["model_version"],
+                )
+                db.add(score)
+                await db.commit()
+                await db.refresh(score)
+
+            # Upsert XAI, AdapterFetchLog, ReviewQueue in one flush — avoids 3 serial commits per persona
+            needs_commit = False
+
+            result = await db.execute(
+                select(XAINarrative).where(XAINarrative.score_id == score.id).limit(1)
             )
             if not result.scalar_one_or_none():
-                db.add(ReviewQueue(
-                    applicant_id=app["id"],
+                db.add(XAINarrative(
                     score_id=score.id,
-                    status="pending" if sc["tier"] == "WATCH" else "in_review",
-                    notes=f"Auto-flagged by F9 Routing: {sc['tier']} risk profile.",
+                    narrative=persona["xai_narrative"]["en"],
+                    cross_check_passed=True,
+                    unsupported_claims="[]",
+                    model_used="demo_pre_generated",
+                    generation_ms=0,
                 ))
                 needs_commit = True
 
-        # Single commit for XAI + fetch log + review queue instead of 3 separate round-trips
-        if needs_commit:
-            await db.commit()
+            result = await db.execute(
+                select(AdapterFetchLog).where(AdapterFetchLog.applicant_id == app["id"]).limit(1)
+            )
+            if not result.scalar_one_or_none():
+                db.add(AdapterFetchLog(
+                    applicant_id=app["id"],
+                    adapter_type="aa_demo",
+                    is_mocked=True,
+                    fetch_status="SUCCESS",
+                    fields_populated_count=13,
+                ))
+                needs_commit = True
 
-    return len(DEMO_PERSONAS)
+            if sc["tier"] in ("WATCH", "HIGH_RISK") or persona.get("routing", {}).get("requires_review"):
+                result = await db.execute(
+                    select(ReviewQueue).where(ReviewQueue.applicant_id == app["id"]).limit(1)
+                )
+                if not result.scalar_one_or_none():
+                    db.add(ReviewQueue(
+                        applicant_id=app["id"],
+                        score_id=score.id,
+                        status="pending" if sc["tier"] == "WATCH" else "in_review",
+                        notes=f"Auto-flagged by F9 Routing: {sc['tier']} risk profile.",
+                    ))
+                    needs_commit = True
+
+            # Single commit for XAI + fetch log + review queue instead of 3 separate round-trips
+            if needs_commit:
+                await db.commit()
+
+        return len(DEMO_PERSONAS)
 
 
 @router.post("/seed")
