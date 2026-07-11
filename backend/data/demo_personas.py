@@ -507,6 +507,8 @@ ALIAS_MAP: dict[str, str] = {
     "DEMO-P3": "APP-VIKRAM",
     "DEMO-P4": "APP-ANITA",
     "DEMO-P5": "APP-SURESH",
+    "APP-MOHAMMED": "APP-VIKRAM",
+    "APP-LAKSHMI": "APP-ANITA",
 }
 
 
