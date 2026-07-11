@@ -203,6 +203,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
   const [isPlaying, setIsPlaying] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isStoppedRef = useRef<boolean>(false);
   const [usingFallback, setUsingFallback] = useState(false);
 
   const currentLangObj = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
@@ -211,6 +212,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
   // BUG-A7 FIX: wrap in useCallback so the cleanup in useEffect always captures
   // the stable reference — not the stale one from the first render.
   const stopAllAudio = useCallback(() => {
+    isStoppedRef.current = true;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -233,23 +235,43 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
     }
     stopAllAudio();
     return () => stopAllAudio();
-  }, [language, personaId]);
+  }, [language, personaId, stopAllAudio]);
 
   const speakVernacularTTS = useCallback((textToSpeak: string, langCode: string) => {
-    stopAllAudio();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    isStoppedRef.current = false;
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       setTimeout(() => {
+        if (isStoppedRef.current) return;
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = langCode;
         utterance.rate = 0.95;
 
         const voices = window.speechSynthesis.getVoices();
         const baseLang = langCode.split('-')[0].toLowerCase();
+        const langKeywords: Record<string, string[]> = {
+          hi: ['hindi', 'हिन्दी', 'hi-in', 'hi_in'],
+          ta: ['tamil', 'தமிழ்', 'ta-in', 'ta_in'],
+          te: ['telugu', 'తెలుగు', 'te-in', 'te_in'],
+          mr: ['marathi', 'मराठी', 'mr-in', 'mr_in'],
+          gu: ['gujarati', 'ગુજરાતી', 'gu-in', 'gu_in'],
+          kn: ['kannada', 'ಕನ್ನಡ', 'kn-in', 'kn_in'],
+          en: ['english', 'en-in', 'en-us', 'en-gb'],
+        };
+        const keywords = langKeywords[baseLang] || [baseLang];
+
         const bestVoice = voices.find(
           (v) =>
             v.lang.toLowerCase() === langCode.toLowerCase() ||
             v.lang.toLowerCase().startsWith(baseLang) ||
-            v.name.toLowerCase().includes(baseLang)
+            keywords.some((k) => v.name.toLowerCase().includes(k) || v.lang.toLowerCase().includes(k))
         );
         if (bestVoice) {
           utterance.voice = bestVoice;
@@ -258,6 +280,11 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
 
         // BUG-A5 FIX: set usingFallback ONLY when speech actually starts, not speculatively
         utterance.onstart = () => {
+          if (isStoppedRef.current) {
+            window.speechSynthesis.cancel();
+            setIsPlaying(false);
+            return;
+          }
           setIsPlaying(true);
           setUsingFallback(true);
         };
@@ -266,6 +293,10 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         // Use a watchdog that waits until speechSynthesis.speaking is false.
         utterance.onend = () => {
           const waitForSpeechEnd = () => {
+            if (isStoppedRef.current) {
+              setIsPlaying(false);
+              return;
+            }
             if (window.speechSynthesis.speaking) {
               setTimeout(waitForSpeechEnd, 200);
             } else {
@@ -276,21 +307,28 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         };
 
         utterance.onerror = (e) => {
-          console.warn('SpeechSynthesis locale warning, attempting fallback voice:', langCode, e);
+          if (isStoppedRef.current || e.error === 'canceled' || e.error === 'interrupted') {
+            setIsPlaying(false);
+            return;
+          }
+          console.warn('SpeechSynthesis locale warning, attempting retry for language:', langCode, e);
           if (!(utterance as any)._hasRetried) {
             (utterance as any)._hasRetried = true;
             const fallbackUtterance = new SpeechSynthesisUtterance(textToSpeak);
-            const safeVoice =
-              voices.find((v) => v.lang.includes('IN') || v.lang.includes('hi') || v.lang.includes('en')) ||
-              voices[0];
-            if (safeVoice) {
-              fallbackUtterance.voice = safeVoice;
-              fallbackUtterance.lang = safeVoice.lang;
-            } else {
-              fallbackUtterance.lang = 'en-US';
+            if (bestVoice) {
+              fallbackUtterance.voice = bestVoice;
             }
+            fallbackUtterance.lang = langCode;
             fallbackUtterance.rate = 0.95;
-            fallbackUtterance.onstart = () => { setIsPlaying(true); setUsingFallback(true); };
+            fallbackUtterance.onstart = () => {
+              if (isStoppedRef.current) {
+                window.speechSynthesis.cancel();
+                setIsPlaying(false);
+                return;
+              }
+              setIsPlaying(true);
+              setUsingFallback(true);
+            };
             fallbackUtterance.onend = () => setIsPlaying(false);
             fallbackUtterance.onerror = () => setIsPlaying(false);
             window.speechSynthesis.speak(fallbackUtterance);
@@ -302,13 +340,15 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         window.speechSynthesis.speak(utterance);
       }, 50);
     }
-  }, [stopAllAudio]);
+  }, []);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
       stopAllAudio();
       return;
     }
+
+    isStoppedRef.current = false;
 
     // BUG-A4 FIX: always resolve the audio element — audioRef.current may be null
     // on the very first render tick. Create a new Audio() as fallback.
@@ -317,20 +357,28 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
       audioRef.current = audioEl;
     }
 
-    // If English and MP3 audioUrl is available, play audio directly
-    if (language === 'en' && audioUrl) {
+    // If MP3 audioUrl is available, play audio directly regardless of language
+    if (audioUrl) {
       audioEl.src = audioUrl;
       // BUG-A2 FIX: register onended so isPlaying resets when track completes
       audioEl.onended = () => setIsPlaying(false);
       audioEl.play().then(() => {
+        if (isStoppedRef.current) {
+          audioEl.pause();
+          setIsPlaying(false);
+          return;
+        }
         setIsPlaying(true);
         setUsingFallback(false);
-      }).catch(() => {
+      }).catch((err: any) => {
+        if (isStoppedRef.current || err?.name === 'AbortError' || err?.message?.includes('interrupted')) {
+          setIsPlaying(false);
+          return;
+        }
         speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
       });
     } else {
-      // For Hindi, Tamil, Telugu, Marathi, Gujarati, Kannada (or when audioUrl is missing),
-      // speak the authentic vernacular text directly with matching voice code!
+      // Speak the authentic vernacular text directly with matching voice code
       speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
     }
   }, [isPlaying, language, audioUrl, activeVernacularText, currentLangObj.ttsLang, stopAllAudio, speakVernacularTTS]);
