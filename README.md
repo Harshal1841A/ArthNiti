@@ -97,18 +97,21 @@ BHASHINI_API_KEY=your_bhashini_key       # Optional — TTS fallback chain exist
 FIU_PRIVATE_KEY_JWK=your_fiu_private_key # For AA JWE decryption
 ```
 
-## Key Corrections from Brutal Audit (v1.4)
+## Key Corrections from Brutal Audit (v1.4 Final)
 
 1. **Synthetic data generator FIXED** — labels now reflect REAL credit logic (weighted sum of features: bounce = -0.35, volatility = -0.25, GST regularity = +0.30, etc.) with controlled noise. AUC target: **0.72–0.78**. Below 0.68 = build failure. Above 0.85 = leakage flag.
 2. **F10 (Counterparty Reputation Ratio) REMOVED** — built on a fundamental misunderstanding of AA data scope. ReBIT DEPOSIT schema includes `accountType` for the applicant's own accounts, not counterparties.
 3. **Cross-check regex FIXED** — now handles negative SHAP values, decimals, and percentages correctly.
 4. **Document upload TRULY ASYNC** — uses FastAPI `BackgroundTasks` with a status polling endpoint.
 5. **F9 routing FIXED** — WATCH/HIGH_RISK routes to human officer review, not absurd document re-upload.
-6. **Async SQLAlchemy** — all routes use `async def` with `AsyncSession`, no event loop blocking.
+6. **Async SQLAlchemy & SQLite StaticPool** — all routes use `async def` with `AsyncSession`, configured with WAL mode and `StaticPool` to eliminate database file lock contention under parallel async workloads.
 7. **LLM client interface DEFINED** — wraps OpenAI SDK for NVIDIA Nemotron Ultra primary + Google Gemma fallback.
 8. **All 14 route handlers IMPLEMENTED** — none are stubs.
 9. **SHAP shape guard** — handles binary classification return shape differences across versions.
 10. **Minimum data completeness guard** — rejects scoring when `data_completeness_pct < 20%`.
+11. **ArthMitraPlayer Vernacular Audio & Pause Race Condition FIXED** — robust dual-mode audio support across all Indic languages (Hindi, Tamil, Telugu, Marathi, Gujarati, Kannada). Fixed HTML5 `Audio.play()` `AbortError` interception and `speechSynthesis` cancellation traps (`isStoppedRef`) to eliminate audio repetition on pause and ensure reliable speech synthesis.
+12. **Unified Signature UI Loading (`RupeeLoader`)** — standardized all component loading states (`DemoPage`, `FinancialHealthCardPage`, `ReviewQueuePage`, `ApplicantsList`) to use the branded Rupee symbol animation.
+13. **Comprehensive Test Suite Passing** — 24/24 integration and prototype tests (`test_prototype.py` + `test_api_integration.py`) passing with 100% API contract consistency.
 
 ## Project Structure
 
@@ -118,16 +121,17 @@ arthniti/
 │   ├── core/           # Scoring engine, XAI, routing, TTS
 │   ├── adapters/       # AA, OCEN, ULI, document fallback
 │   ├── api/routes/     # 14 FastAPI route handlers
-│   ├── database/       # Async SQLAlchemy models
+│   ├── database/       # Async SQLAlchemy models & StaticPool session
 │   ├── data/           # Synthetic data generator
 │   ├── main.py         # FastAPI entry point
 │   └── train_model.py  # XGBoost training script
-├── frontend/           # React 18 + Vite + Tailwind
-├── scripts/            # FIU key generation
+├── frontend/           # React 18 + Vite + Tailwind + ArthMitra Indic TTS
+├── scripts/            # FIU key generation & automated prototype tests
+├── tests/              # Full E2E integration test suite
 ├── docker-compose.yml
 └── requirements.txt
 ```
 
 ## License
 
-Hackathon project — for demonstration purposes.
+Hackathon project — IDBI Innovate 2026. For demonstration purposes.
