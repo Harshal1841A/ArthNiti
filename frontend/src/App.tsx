@@ -21,13 +21,12 @@ const AdapterStatus = lazy(() => import('./pages/AdapterStatus'));
 const ReviewQueuePage = lazy(() => import('./pages/ReviewQueuePage'));
 const DemoModePage = lazy(() => import('./pages/DemoModePage'));
 
+import { RupeeLoader } from './components/ui/RupeeLoader';
+
 function RouteFallback() {
   return (
     <div className="flex h-64 items-center justify-center">
-      <div
-        className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent"
-        aria-label="Loading"
-      />
+      <RupeeLoader size="lg" label="Loading ArthNiti..." />
     </div>
   );
 }

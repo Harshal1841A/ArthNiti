@@ -54,24 +54,26 @@ async def lifespan(app: FastAPI):
     # Step 1: Table creation is fast (DDL only when tables don't exist)
     await init_db()
 
-    # Step 2: Start seeding + model load as background tasks so uvicorn can
-    # immediately start accepting HTTP connections. Previously these ran serially
-    # here, blocking the event loop for 3-8 seconds on every cold start.
+    # Step 1.5: Seed demo personas synchronously before serving requests (~15ms)
+    # SQLite / StaticPool does not support background writes overlapping with
+    # incoming API requests or test suites.
+    if _settings.DEMO_MODE:
+        logging.warning("DEMO_MODE: seeding synthetic MSME personas...")
+        try:
+            from backend.database.db import _AsyncSessionLocal as _session_maker
+            from backend.api.routes.demo import seed_demo_personas_db
+            async with _session_maker() as db_session:
+                await seed_demo_personas_db(db_session)
+            logging.info("Demo personas seeded successfully.")
+        except Exception as exc:
+            logging.exception("Seed failed: %s", exc)
+
+    # Step 2: Start model load/train as a background task so uvicorn can
+    # immediately start accepting HTTP connections.
     app.state.scoring_core = None  # 503 until model is ready
 
     async def _background_startup():
-        """Run seed + model load without blocking the HTTP accept loop."""
-        # 2a: Seed demo personas (async DB writes)
-        if _settings.DEMO_MODE:
-            logging.warning("DEMO_MODE: seeding synthetic MSME personas in background...")
-            try:
-                from backend.database.db import _AsyncSessionLocal as _session_maker
-                from backend.api.routes.demo import seed_demo_personas_db
-                async with _session_maker() as db_session:
-                    await seed_demo_personas_db(db_session)
-                logging.info("Demo personas seeded successfully.")
-            except Exception as exc:
-                logging.exception("Background seed failed: %s", exc)
+        """Run model load without blocking the HTTP accept loop."""
 
         # 2b: Train model if missing (CPU-bound → thread so event loop stays free)
         model_path = Path(_settings.MODEL_PATH)

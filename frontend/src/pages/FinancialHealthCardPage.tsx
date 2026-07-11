@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Loader2, ArrowLeft, Zap, BrainCircuit, Volume2, AlertTriangle, CheckCircle2,
+  ArrowLeft, Zap, BrainCircuit, Volume2, AlertTriangle, CheckCircle2,
   TrendingUp, TrendingDown, Activity,
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -15,6 +15,7 @@ import WhatIfSimulator from '@/components/WhatIfSimulator';
 import ArthMitraPlayer from '@/components/ArthMitraPlayer';
 import DecisionTrail from '@/components/DecisionTrail';
 import MultiAgentViz from '@/components/MultiAgentViz';
+import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 // Default fallback OCEN offers to guarantee Sanction Letter & Offers functionality across all profiles
 const DEFAULT_FALLBACK_OFFERS = [
@@ -372,8 +373,7 @@ export default function FinancialHealthCardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-        <span className="ml-3 text-sm text-[var(--text-secondary)] font-mono uppercase tracking-wider font-semibold">Loading Dossier Telemetry...</span>
+        <RupeeLoader size="lg" label="Loading Dossier Telemetry..." />
       </div>
     );
   }
@@ -468,7 +468,7 @@ export default function FinancialHealthCardPage() {
               {fetchingData ? 'Syncing AA Telemetry...' : 'Fetch AA Telemetry'}
             </button>
             <button className="btn-gold" onClick={handleScore} disabled={scoring}>
-              {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+              {scoring ? <RupeeLoader size="sm" className="mr-1.5" /> : <Activity className="h-3.5 w-3.5" />}
               {scoring ? 'Computing Score (~45ms)...' : score ? 'Re-run AI Scoring' : 'Execute AI Scoring (~45ms)'}
             </button>
           </div>
@@ -510,7 +510,7 @@ export default function FinancialHealthCardPage() {
                 onClick={handleScore}
                 disabled={scoring}
               >
-                {scoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+                {scoring ? <RupeeLoader size="sm" className="mr-1.5" /> : <Activity className="h-4 w-4" />}
                 {scoring ? 'Computing Score (~45ms)...' : '2. Execute AI Scoring (~45ms)'}
               </button>
             </div>
@@ -722,7 +722,7 @@ export default function FinancialHealthCardPage() {
                       >
                         {generatingXAI ? (
                           <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            <RupeeLoader size="sm" className="mr-2" />
                             Synthesizing XAI Narrative (~2-3s)...
                           </>
                         ) : (

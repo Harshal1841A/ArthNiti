@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Loader2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
 import { lenderColor } from '@/lib/tierColors';
+import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 export interface LoanOffer {
   lender_name: string;
@@ -201,7 +202,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                     >
                       {isThisBidAccepted && bidStage === 'signing' ? (
                         <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Executing Mandate...
+                          <RupeeLoader size="sm" className="mr-1.5" /> Executing Mandate...
                         </>
                       ) : isThisBidAccepted && bidStage === 'disbursed' ? (
                         <>
@@ -244,7 +245,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-sans font-bold px-2.5 py-1 rounded-full bg-[var(--accent-emerald)]/20 text-[var(--accent-emerald)] uppercase flex items-center gap-1">
-                  {bidStage === 'signing' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                  {bidStage === 'signing' ? <RupeeLoader size="sm" /> : <Check className="h-3 w-3" />}
                   {bidStage === 'signing' ? 'Signing & Verifying...' : 'AA Mandate Executed'}
                 </span>
               </div>

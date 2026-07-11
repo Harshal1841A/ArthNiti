@@ -11,18 +11,20 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from sqlalchemy.pool import StaticPool
+
 from backend.config import get_settings
 
 _settings = get_settings()
 
+_engine_kwargs = {"echo": False}
+if _settings.DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+    if ":memory:" in _settings.DATABASE_URL:
+        _engine_kwargs["poolclass"] = StaticPool
+
 # Create async engine with SQLite-specific pragmas
-_engine = create_async_engine(
-    _settings.DATABASE_URL,
-    echo=False,
-    connect_args={
-        "check_same_thread": False,
-    } if _settings.DATABASE_URL.startswith("sqlite") else {},
-)
+_engine = create_async_engine(_settings.DATABASE_URL, **_engine_kwargs)
 
 if _settings.DATABASE_URL.startswith("sqlite"):
     @event.listens_for(_engine.sync_engine, "connect")

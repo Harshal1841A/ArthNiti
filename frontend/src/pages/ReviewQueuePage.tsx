@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Loader2,
   RefreshCw,
   UserCheck,
   CheckCircle2,
@@ -13,6 +12,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { RupeeLoader } from '../components/ui/RupeeLoader';
 import api from '../lib/api';
 
 interface ReviewItem {
@@ -200,8 +200,7 @@ export default function ReviewQueuePage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-          <span className="ml-3 text-sm text-[var(--text-secondary)] font-mono uppercase tracking-wider font-semibold">Retrieving Risk Determinations...</span>
+          <RupeeLoader size="lg" label="Retrieving Risk Determinations..." />
         </div>
       ) : reviews.length === 0 ? (
         <div className="glass-card py-20 text-center border border-[var(--border)]">

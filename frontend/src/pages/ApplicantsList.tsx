@@ -4,10 +4,10 @@ import {
   Search,
   Plus,
   ArrowUpRight,
-  Loader2,
   Users,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 interface Applicant {
   id: string;
@@ -69,8 +69,7 @@ export default function ApplicantsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-        <span className="ml-3 text-sm text-[var(--text-secondary)] font-mono uppercase tracking-wider font-semibold">Loading Portfolio Dossiers...</span>
+        <RupeeLoader size="lg" label="Loading Portfolio Dossiers..." />
       </div>
     );
   }

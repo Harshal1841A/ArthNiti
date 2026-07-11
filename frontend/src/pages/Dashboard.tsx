@@ -10,6 +10,7 @@ import MultiAgentViz from '@/components/MultiAgentViz';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { tierColor } from '@/lib/tierColors';
+import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 
 // BUG-13 FIX: These IDs must match exactly what backend/data/demo_personas.py seeds.
@@ -282,8 +283,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Activity className="h-8 w-8 animate-spin text-[var(--accent)]" />
-        <span className="ml-3 text-sm text-[var(--text-secondary)] font-mono uppercase tracking-wider font-semibold">Loading Executive Intelligence...</span>
+        <RupeeLoader size="lg" label="Loading Executive Intelligence..." />
       </div>
     );
   }
