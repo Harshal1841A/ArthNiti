@@ -6,6 +6,7 @@ POST /api/v1/consent/aa/fetch             → Fetch + normalize AA data
 """
 
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -25,6 +26,7 @@ from backend.api.models import ConsentListItem, ConsentRequestPayload, ConsentSt
 from backend.database.models import AdapterFetchLog, Applicant, ConsentRecord, NormalizedFeatures
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/request", response_model=ConsentStatusResponse)
@@ -71,7 +73,8 @@ async def create_consent(
     try:
         resp = await request_consent(consent_req)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AA sandbox error: {e}")
+        logger.exception("AA consent request failed for applicant_id=%s", req.applicant_id)
+        raise HTTPException(status_code=502, detail="Account Aggregator service unavailable. Please retry.")
 
     consent_handle = resp.get("ConsentHandle", resp.get("consentHandle"))
     if not consent_handle:
@@ -115,7 +118,8 @@ async def get_consent_status(
     try:
         status = await poll_consent_status(handle)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AA sandbox error: {e}")
+        logger.exception("AA status poll failed for handle=%s", handle)
+        raise HTTPException(status_code=502, detail="Account Aggregator service unavailable. Please retry.")
 
     record.status = status
     await db.commit()
@@ -179,7 +183,8 @@ async def fetch_aa_data(
         )
         db.add(log)
         await db.commit()
-        raise HTTPException(status_code=502, detail=f"AA data fetch failed: {e}")
+        logger.exception("AA data fetch failed for applicant_id=%s", applicant_id)
+        raise HTTPException(status_code=502, detail="AA data fetch failed. Consent may have expired or been revoked.")
 
     # Map to normalized features
     features = map_to_normalized_schema(fi_data, applicant_id, had_bureau_record=applicant.has_bureau_record)

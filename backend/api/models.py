@@ -10,9 +10,9 @@ from pydantic import BaseModel, Field
 
 
 class ApplicantCreateRequest(BaseModel):
-    business_name: str = Field(..., min_length=1)
+    business_name: str = Field(..., min_length=1, max_length=200)
     has_bureau_record: bool
-    preferred_language: str = "en"
+    preferred_language: str = Field("en", max_length=10)
 
 
 class ApplicantResponse(BaseModel):
@@ -126,3 +126,12 @@ class ReviewQueueItem(BaseModel):
     status: str
     assigned_officer: Optional[str] = None
     notes: Optional[str] = None
+
+
+class AssignOfficerRequest(BaseModel):
+    officer_name: str = Field(..., min_length=1, max_length=120)
+
+
+class ResolveReviewRequest(BaseModel):
+    decision: str = Field(..., max_length=20)  # approved | rejected
+    notes: str = Field(..., max_length=2000)

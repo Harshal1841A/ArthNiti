@@ -10,6 +10,8 @@ SECURITY FIXES (v1.4):
 """
 
 import json
+import os
+import re
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select
@@ -32,6 +34,24 @@ ALLOWED_TYPES = {
 ALLOWED_EXTS = {".pdf", ".txt", ".csv"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
+
+def _sanitize_filename(raw: str) -> str:
+    """Strip path traversal sequences and non-printable characters from filenames.
+
+    Security: prevents directory traversal (../../etc/passwd), null-byte injection,
+    and overlong filenames from being stored in the database or reflected in headers.
+    """
+    # Remove any directory component (handles both / and \\ separators)
+    name = os.path.basename(raw.replace("\\", "/"))
+    # Strip null bytes and ASCII control characters
+    name = re.sub(r'[\x00-\x1f\x7f]', '', name)
+    # Allow only safe filename characters: alphanumeric, dash, underscore, dot, space
+    name = re.sub(r'[^\w.\- ]', '_', name)
+    # Collapse multiple dots to prevent double-extension attacks (evil.pdf.exe)
+    name = re.sub(r'\.{2,}', '.', name)
+    # Enforce max length
+    name = name[:200].strip() or "upload"
+    return name
 
 async def _process_document(upload_id: str, applicant_id: str, file_bytes: bytes, filename: str, content_type: str):
     """Background task: process document upload with LLM."""
@@ -103,7 +123,7 @@ async def upload_document(
     if not applicant:
         raise HTTPException(status_code=404, detail="Applicant not found")
 
-    filename_str = file.filename or "uploaded_file"
+    filename_str = _sanitize_filename(file.filename or "uploaded_file")
     ext = f".{filename_str.split('.')[-1].lower()}" if '.' in filename_str else ""
     if file.content_type not in ALLOWED_TYPES and ext not in ALLOWED_EXTS:
         raise HTTPException(

@@ -5,6 +5,7 @@ GET  /api/v1/xai              → List XAI narratives
 """
 
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -18,6 +19,7 @@ from backend.database.models import Score, XAINarrative
 from backend.limiter import limiter
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/{score_id}", response_model=XAINarrativeResponse)
@@ -41,7 +43,8 @@ async def generate_xai(
     try:
         narrative_result = await generate_narrative(score_result, llm_client)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"LLM generation failed: {e}")
+        logger.exception("LLM narrative generation failed for score_id=%s", score_id)
+        raise HTTPException(status_code=502, detail="Upstream AI service unavailable. Please retry.")
 
     existing_res = await db.execute(
         select(XAINarrative).where(XAINarrative.score_id == score_id).order_by(XAINarrative.created_at.desc()).limit(1)

@@ -8,7 +8,7 @@ POST /api/v1/reviews/{id}/resolve   → Approve or Reject application
 import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,12 +42,12 @@ class ReviewQueueItemResponse(BaseModel):
 
 
 class AssignOfficerRequest(BaseModel):
-    officer_name: str
+    officer_name: str = Field(..., min_length=1, max_length=120)
 
 
 class ResolveReviewRequest(BaseModel):
-    decision: str  # approved | rejected
-    notes: str
+    decision: str = Field(..., max_length=20)  # approved | rejected
+    notes: str = Field(..., max_length=2000)
 
 
 @router.get("", response_model=List[ReviewQueueItemResponse])

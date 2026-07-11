@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from backend.config import get_settings
 from backend.core.scoring_engine import ScoringCore
@@ -105,6 +106,10 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Register SlowAPI as ASGI middleware so per-route @limiter.limit decorators
+# are evaluated for EVERY incoming request — not just routes that explicitly
+# added the decorator. Without this line, slowapi is effectively disabled.
+app.add_middleware(SlowAPIMiddleware)
 
 
 # CORS — wildcard origin disables credentials (cookie-based auth); Bearer token is unaffected.

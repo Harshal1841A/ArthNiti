@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,7 @@ from backend.database.models import XAINarrative
 
 router = APIRouter()
 _settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/{xai_id}/speak")
@@ -51,4 +53,5 @@ async def speak_xai_narrative(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"TTS failed: {e}")
+        logger.exception("TTS synthesis failed for xai_id=%s", xai_id)
+        raise HTTPException(status_code=502, detail="Text-to-speech service unavailable. Please retry.")
