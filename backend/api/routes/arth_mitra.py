@@ -40,10 +40,22 @@ async def speak_xai_narrative(
             language=req.language,
             pre_generated_text=narrative_text if (req.demo_persona_id and _settings.DEMO_MODE) else None,
         )
+        # BUG-A6 FIX: IndicTTS returns audio/mpeg (MP3), not audio/wav.
+        # Detect the actual format from the magic bytes so the browser can
+        # decode the stream correctly regardless of which TTS tier responded.
+        if audio_bytes[:3] == b"ID3" or audio_bytes[:2] == b"\xff\xfb":
+            detected_mime = "audio/mpeg"
+        elif audio_bytes[:4] == b"RIFF":
+            detected_mime = "audio/wav"
+        elif audio_bytes[:4] == b"OggS":
+            detected_mime = "audio/ogg"
+        else:
+            detected_mime = "audio/mpeg"  # IndicTTS default
+
         return StreamingResponse(
             iter([audio_bytes]),
-            media_type="audio/wav",
-            headers={"Content-Disposition": f"attachment; filename=arth-mitra-{xai_id}.wav"},
+            media_type=detected_mime,
+            headers={"Content-Disposition": f"inline; filename=arth-mitra-{xai_id}.{detected_mime.split('/')[-1]}"},
         )
     except TTSFallbackToBrowser as e:
         return ArthMitraSpeakResponse(

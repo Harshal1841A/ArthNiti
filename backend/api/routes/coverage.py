@@ -29,7 +29,7 @@ async def get_coverage_stats(db: AsyncSession = Depends(get_db), _auth: str = De
     ntb = ntb_res.scalar() or 0
 
     usable_res = await db.execute(
-        select(func.count())
+        select(func.count(func.distinct(Applicant.id)))
         .select_from(Applicant)
         .join(Score, Score.applicant_id == Applicant.id)
         .where(Applicant.has_bureau_record == False)

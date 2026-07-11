@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import MultiAgentViz from '@/components/MultiAgentViz';
 import ArthMitraPlayer, {
-  HINDI_NARRATIVES,
   ENGLISH_NARRATIVES,
+  ALL_NARRATIVES,
 } from '@/components/ArthMitraPlayer';
 
 // BUG-13 FIX: Use correct backend persona IDs (APP-MOHAMMED, APP-LAKSHMI)
@@ -111,8 +111,11 @@ export default function DemoPage() {
   }, [stage]);
 
   useEffect(() => {
-    const narrative = language === 'hi' ? HINDI_NARRATIVES[selectedPersona.id] : ENGLISH_NARRATIVES[selectedPersona.id];
-    setXaiNarrative(narrative || '');
+    const narrative =
+      (ALL_NARRATIVES[language] ?? ENGLISH_NARRATIVES)[selectedPersona.id]
+      || ENGLISH_NARRATIVES[selectedPersona.id]
+      || '';
+    setXaiNarrative(narrative);
     setAudioUrl(undefined);
     setIsFallback(false);
   }, [selectedPersona, language]);

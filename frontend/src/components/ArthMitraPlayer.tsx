@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, Globe, VolumeX } from 'lucide-react';
+import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 const LANGUAGES = [
   { code: 'hi', label: 'Hindi (हिंदी)', ttsLang: 'hi-IN' },
@@ -207,17 +208,20 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
   const currentLangObj = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
   const activeVernacularText = getVernacularText(personaId, language, narrativeText);
 
-  // Guarantee stopping all speech and audio when triggered
-  const stopAllAudio = () => {
+  // BUG-A7 FIX: wrap in useCallback so the cleanup in useEffect always captures
+  // the stable reference — not the stale one from the first render.
+  const stopAllAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      // BUG-A2 FIX: clear the onended handler to avoid stale closure firing later
+      audioRef.current.onended = null;
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     setIsPlaying(false);
-  };
+  }, []);
 
   // Stop audio whenever unmounting or language switches
   useEffect(() => {
@@ -231,7 +235,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
     return () => stopAllAudio();
   }, [language, personaId]);
 
-  const speakVernacularTTS = (textToSpeak: string, langCode: string) => {
+  const speakVernacularTTS = useCallback((textToSpeak: string, langCode: string) => {
     stopAllAudio();
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       setTimeout(() => {
@@ -252,10 +256,27 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
           utterance.lang = bestVoice.lang;
         }
 
-        utterance.onstart = () => setIsPlaying(true);
-        utterance.onend = () => setIsPlaying(false);
+        // BUG-A5 FIX: set usingFallback ONLY when speech actually starts, not speculatively
+        utterance.onstart = () => {
+          setIsPlaying(true);
+          setUsingFallback(true);
+        };
+
+        // BUG-A8 FIX: Chrome fires onend prematurely for long utterances.
+        // Use a watchdog that waits until speechSynthesis.speaking is false.
+        utterance.onend = () => {
+          const waitForSpeechEnd = () => {
+            if (window.speechSynthesis.speaking) {
+              setTimeout(waitForSpeechEnd, 200);
+            } else {
+              setIsPlaying(false);
+            }
+          };
+          waitForSpeechEnd();
+        };
+
         utterance.onerror = (e) => {
-          console.warn("SpeechSynthesis locale warning, attempting fallback voice:", langCode, e);
+          console.warn('SpeechSynthesis locale warning, attempting fallback voice:', langCode, e);
           if (!(utterance as any)._hasRetried) {
             (utterance as any)._hasRetried = true;
             const fallbackUtterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -269,7 +290,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
               fallbackUtterance.lang = 'en-US';
             }
             fallbackUtterance.rate = 0.95;
-            fallbackUtterance.onstart = () => setIsPlaying(true);
+            fallbackUtterance.onstart = () => { setIsPlaying(true); setUsingFallback(true); };
             fallbackUtterance.onend = () => setIsPlaying(false);
             fallbackUtterance.onerror = () => setIsPlaying(false);
             window.speechSynthesis.speak(fallbackUtterance);
@@ -279,21 +300,29 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
         };
 
         window.speechSynthesis.speak(utterance);
-        setUsingFallback(true);
       }, 50);
     }
-  };
+  }, [stopAllAudio]);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (isPlaying) {
       stopAllAudio();
       return;
     }
 
+    // BUG-A4 FIX: always resolve the audio element — audioRef.current may be null
+    // on the very first render tick. Create a new Audio() as fallback.
+    const audioEl = audioRef.current ?? new Audio();
+    if (!audioRef.current) {
+      audioRef.current = audioEl;
+    }
+
     // If English and MP3 audioUrl is available, play audio directly
-    if (language === 'en' && audioUrl && audioRef.current) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.play().then(() => {
+    if (language === 'en' && audioUrl) {
+      audioEl.src = audioUrl;
+      // BUG-A2 FIX: register onended so isPlaying resets when track completes
+      audioEl.onended = () => setIsPlaying(false);
+      audioEl.play().then(() => {
         setIsPlaying(true);
         setUsingFallback(false);
       }).catch(() => {
@@ -304,7 +333,7 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
       // speak the authentic vernacular text directly with matching voice code!
       speakVernacularTTS(activeVernacularText, currentLangObj.ttsLang);
     }
-  };
+  }, [isPlaying, language, audioUrl, activeVernacularText, currentLangObj.ttsLang, stopAllAudio, speakVernacularTTS]);
 
   // NEW-02 FIX: Memoize random waveform heights and durations so re-renders do not recreate them
   const waveformBars = useMemo(() => {
@@ -330,7 +359,8 @@ export default function ArthMitraPlayer({ audioUrl, narrativeText, language, onL
           title={isPlaying ? "Stop Voice Playback" : "Listen in Selected Language"}
         >
           {isLoading ? (
-            <motion.div className="w-4 h-4 border-2 border-[var(--accent-emerald)] border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
+            /* BUG-A9 FIX: use standardized RupeeLoader, not old ad-hoc spinner */
+            <RupeeLoader size="sm" />
           ) : isPlaying ? (
             <Pause className="h-5 w-5" />
           ) : (

@@ -748,6 +748,7 @@ export default function FinancialHealthCardPage() {
                   narrativeText={xai?.narrative || ''}
                   language={language}
                   onLanguageChange={setLanguage}
+                  personaId={id}
                 />
                 <p className="text-[11px] font-mono text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border)] pt-3">
                   Arth-Mitra explains credit determinations directly to MSME borrowers in native regional dialects via IndicTTS / Web Audio API fallback.

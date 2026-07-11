@@ -35,13 +35,19 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
   const [mandateId, setMandateId] = useState<string>('');
 
   useEffect(() => {
-    if (!acceptedBid && offers && offers.length > 0) {
-      setSelectedIndex(0);
-      setAcceptedBid(offers[0]);
-      setBidStage('disbursed');
-      setMandateId(`OCEN-MANDATE-${Math.floor(100000 + Math.random() * 900000)}`);
+    if (offers && offers.length > 0) {
+      // If no bid is accepted yet, OR if the acceptedBid is not in the new offers list (persona changed)
+      const isCurrentBidInOffers = acceptedBid && offers.some(o => o.lender_name === acceptedBid.lender_name);
+      if (!acceptedBid || !isCurrentBidInOffers) {
+        setSelectedIndex(0);
+        setAcceptedBid(offers[0]);
+        setBidStage('disbursed');
+        setMandateId(`OCEN-MANDATE-${Math.floor(100000 + Math.random() * 900000)}`);
+      }
+    } else {
+      setAcceptedBid(null);
     }
-  }, [offers, acceptedBid]);
+  }, [offers]);
 
   const handleSelectBid = (offer: LoanOffer, index: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,19 +167,19 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Monthly EMI</div>
-                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{offer.emi.toLocaleString()}</div>
+                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{(offer.emi || 0).toLocaleString()}</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Tenure</div>
-                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.tenure_months} MO</div>
+                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.tenure_months || 0} MO</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Limit</div>
-                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{(offer.max_amount / 100000).toFixed(1)}L</div>
+                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">₹{((offer.max_amount || 0) / 100000).toFixed(1)}L</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2">
                         <div className="text-[11px] font-sans uppercase text-[var(--text-secondary)] font-medium">Turnaround</div>
-                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.disbursement_days} DAYS</div>
+                        <div className="text-xs font-mono font-bold text-[var(--text-primary)]">{offer.disbursement_days || 1} DAYS</div>
                       </div>
                     </div>
 
@@ -254,19 +260,19 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
               <div>
                 <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Sanction Limit</span>
-                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{(acceptedBid.max_amount / 100000).toFixed(2)} Lakhs</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{((acceptedBid.max_amount || 0) / 100000).toFixed(2)} Lakhs</span>
               </div>
               <div>
                 <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Interest Rate</span>
-                <span className="text-sm font-mono font-bold text-[var(--accent-emerald)]">{acceptedBid.interest_rate_annual}% APR</span>
+                <span className="text-sm font-mono font-bold text-[var(--accent-emerald)]">{acceptedBid.interest_rate_annual || 0}% APR</span>
               </div>
               <div>
                 <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Tenure &amp; EMI</span>
-                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{acceptedBid.emi.toLocaleString()} / {acceptedBid.tenure_months}m</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">₹{(acceptedBid.emi || 0).toLocaleString()} / {acceptedBid.tenure_months || 0}m</span>
               </div>
               <div>
                 <span className="text-[10px] font-sans uppercase text-[var(--text-secondary)] block">Disbursement SLA</span>
-                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">{acceptedBid.disbursement_days} Days (Direct Bank)</span>
+                <span className="text-sm font-mono font-bold text-[var(--text-primary)]">{acceptedBid.disbursement_days || 1} Days (Direct Bank)</span>
               </div>
             </div>
 
