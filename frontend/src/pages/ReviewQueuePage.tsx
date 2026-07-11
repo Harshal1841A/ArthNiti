@@ -47,8 +47,8 @@ export default function ReviewQueuePage() {
     setError('');
     setIsFallback(false);
 
-    // Trigger seeding in background — idempotent, fires-and-forgets
-    api.post('/v1/demo/seed').catch(() => null);
+    // Ensure demo personas and review queue are seeded before fetching
+    await api.post('/v1/demo/seed').catch(() => null);
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
