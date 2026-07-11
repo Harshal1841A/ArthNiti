@@ -222,37 +222,32 @@ export default function Dashboard() {
           }
 
           if (applicantsArr.length > 0) {
-            setStats(cov || {
-              total_applicants: applicantsArr.length,
-              applicants_without_bureau_record: 3,
-              applicants_without_bureau_record_with_usable_score: 3,
-              coverage_improvement_pct: 100.0,
-            });
+            // If the coverage-stats call specifically failed while applicants/
+            // scores succeeded, don't silently substitute a fabricated 100%
+            // figure — that's a real number a judge could read off the screen.
+            // Show what's real, and say plainly that one metric didn't load.
+            if (!cov) {
+              setError('Live coverage stats unavailable — retry, or check API connectivity. Not showing a placeholder number in its place.');
+            }
+            setStats(cov);
             setApplicants(applicantsArr.slice(0, 5));
             const tierCounts: Record<string, number> = { STRONG: 0, ADEQUATE: 0, WATCH: 0, HIGH_RISK: 0 };
             scoresArr.forEach((s: any) => { if (tierCounts[s.tier] !== undefined) tierCounts[s.tier]++; });
             setScores(Object.entries(tierCounts).map(([tier, count]) => ({ tier, count })));
           } else {
-            // Synthetic demo fallback so Officer persona dashboard never shows 0 values during cold start
-            setStats({
-              total_applicants: 5,
-              applicants_without_bureau_record: 3,
-              applicants_without_bureau_record_with_usable_score: 3,
-              coverage_improvement_pct: 100.0,
-            });
-            setApplicants([
-              { id: 'APP-RAJESH', business_name: 'Rajesh Textiles & Co', has_bureau_record: false },
-              { id: 'APP-PRIYA', business_name: 'Priya Cloud Kitchens', has_bureau_record: false },
-              { id: 'APP-VIKRAM', business_name: 'Vikram Auto Ancillaries', has_bureau_record: true },
-              { id: 'APP-ANITA', business_name: 'Anita Boutique Exports', has_bureau_record: false },
-              { id: 'APP-SURESH', business_name: 'Suresh Hardware Mart', has_bureau_record: true },
-            ]);
-            setScores([
-              { tier: 'STRONG', count: 2 },
-              { tier: 'ADEQUATE', count: 1 },
-              { tier: 'WATCH', count: 1 },
-              { tier: 'HIGH_RISK', count: 1 },
-            ]);
+            // Previously fell back to entirely fabricated applicants (names
+            // that didn't even match the real seeded demo personas) and a
+            // hardcoded "100% coverage" figure, shown with no indication any
+            // of it was fake. That's a direct contradiction of the "real vs
+            // synthetic" disclosure discipline used everywhere else in this
+            // app (the SYNTHETIC PROTOTYPE badges, the honesty table, etc.)
+            // — and it was reachable by the most realistic failure mode
+            // there is: a slow or interrupted backend during a live demo.
+            // Show an honest empty/error state instead of invented numbers.
+            setStats(null);
+            setApplicants([]);
+            setScores([]);
+            setError('Could not load live applicant data from the backend after retrying. This is not a placeholder screen — it reflects the actual current connection state.');
           }
           break;
         }
