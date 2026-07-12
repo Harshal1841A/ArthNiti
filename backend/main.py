@@ -46,22 +46,7 @@ _settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create tables, then yield immediately so HTTP is ready within ~100ms.
-
-    Heavy work (DB seeding, model load) is offloaded to background asyncio tasks so
-    the first request is not blocked. The scoring core becomes available within
-    1-2 seconds on a warm container; graceful 503 is returned until then.
-    """
-    # Refuse to start rather than silently serving with auth disabled. This has
-    # now happened twice for real: once as an unconditional DEMO_MODE bypass,
-    # and again because the shipped .env sets VITE_API_KEY (frontend) but not
-    # ARTHNITI_API_KEY (backend) — the exact "operator forgot to configure the
-    # key" scenario deps.py's fail-open path was written to tolerate. Patching
-    # the .env template is not enough on its own, since nothing stops the next
-    # copy-paste from dropping the line again. This check makes that specific
-    # mistake impossible to deploy silently: with DEMO_MODE on and no key
-    # configured, the process exits immediately with a clear message instead
-    # of coming up healthy and quietly accepting unauthenticated writes.
+    """Startup lifecycle manager."""
     _demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("true", "1", "yes")
     _has_key = bool(os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY"))
     _insecure_opt_in = os.environ.get("ARTHNITI_ALLOW_INSECURE_DEMO", "").lower() in ("true", "1", "yes")
@@ -186,13 +171,7 @@ async def health_check():
     return {"status": "ok", "version": "1.4.0"}
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Static frontend — must be registered LAST so API routes take priority.
-#
-# /assets/* → StaticFiles mount (bypasses Python event loop entirely; served
-#             directly by Starlette's file handler with immutable cache headers)
-# everything else → SPA fallback (returns index.html for React Router routes)
-# ──────────────────────────────────────────────────────────────────────────────
+# Static frontend SPA & asset serving
 _DIST = Path(__file__).parent.parent / "frontend" / "dist"
 if not _DIST.is_dir():
     _DIST = Path(__file__).parent / "static"
@@ -200,11 +179,6 @@ if not _DIST.is_dir():
 if _DIST.is_dir():
     _ASSETS = _DIST / "assets"
     if _ASSETS.is_dir():
-        # Mount /assets as a true static directory — this bypasses the async
-        # event loop for every JS/CSS/font request, which is the single biggest
-        # latency win for asset serving vs the previous FileResponse catch-all.
-        # Starlette's StaticFiles sets ETags automatically; we add immutable
-        # Cache-Control via a tiny wrapper so hashed filenames cache forever.
         from starlette.staticfiles import StaticFiles as _SF
         from starlette.responses import Response as _R
         from starlette.types import Scope, Receive, Send
@@ -214,8 +188,6 @@ if _DIST.is_dir():
             async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
                 async def _send_with_cache(message):
                     if message["type"] == "http.response.start":
-                        # ASGI headers are List[Tuple[bytes, bytes]].
-                        # Drop any existing cache-control header and append ours.
                         raw: list = message.get("headers", [])
                         filtered = [(k, v) for k, v in raw if k.lower() != b"cache-control"]
                         filtered.append((b"cache-control", b"public, max-age=31536000, immutable"))
@@ -227,16 +199,10 @@ if _DIST.is_dir():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
-        """Serve static root files or fall back to index.html for SPA routes.
-
-        /assets/* is already handled by the StaticFiles mount above.
-        This handler covers: favicon.ico, robots.txt, and all React Router paths.
-        """
         candidate = (_DIST / full_path).resolve()
         dist_resolved = _DIST.resolve()
         if candidate.is_relative_to(dist_resolved) and candidate.is_file():
             return FileResponse(candidate)
-        # SPA fallback: must-revalidate so new deploys are picked up immediately
         return FileResponse(
             dist_resolved / "index.html",
             headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
