@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Landmark, Wallet, ArrowRight, Check, CheckCircle2, Download, ShieldCheck, RefreshCw } from 'lucide-react';
 import { lenderColor } from '@/lib/tierColors';
 import { RupeeLoader } from '@/components/ui/RupeeLoader';
+import { generateMandateReceiptPDF } from '@/lib/mandatePdf';
 
 export interface LoanOffer {
   lender_name: string;
@@ -67,35 +68,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
 
   const handleDownloadReceipt = () => {
     if (!acceptedBid) return;
-    const receipt = {
-      protocol: 'OCEN 4.0 / Account Aggregator Mandate',
-      mandate_id: mandateId,
-      timestamp: new Date().toISOString(),
-      lender: {
-        name: acceptedBid.lender_name,
-        type: acceptedBid.lender_type,
-      },
-      terms: {
-        sanction_amount_inr: acceptedBid.max_amount,
-        interest_rate_apr: acceptedBid.interest_rate_annual,
-        tenure_months: acceptedBid.tenure_months,
-        monthly_emi_inr: acceptedBid.emi,
-        processing_fee_pct: acceptedBid.processing_fee_pct,
-        disbursement_sla_days: acceptedBid.disbursement_days,
-      },
-      status: 'MANDATE_REGISTERED_DISBURSEMENT_INITIATED',
-      cryptographic_hash: `SHA256:8f9a2b4c1d3e5f7a9b0c2d4e6f8a0b2c4d6e8f0a2b4c6e8f0a2b4c6e8f0a2b4c`,
-    };
-
-    const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${mandateId}_Receipt.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    generateMandateReceiptPDF(acceptedBid, mandateId);
   };
 
   return (
@@ -292,7 +265,7 @@ export default function LoanOfferCarousel({ offers, onSelectOffer }: LoanOfferCa
                     onClick={handleDownloadReceipt}
                     className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[var(--accent-emerald)] text-black font-sans font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
-                    <Download className="h-3.5 w-3.5" /> Mandate Receipt
+                    <Download className="h-3.5 w-3.5" /> Mandate Receipt (PDF)
                   </button>
                   <button
                     type="button"
