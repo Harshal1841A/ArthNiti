@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth, PersonaKey } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import PersonaGuard, { ApplicantOwnershipGuard } from './components/PersonaGuard';
+import PersonaTransitionOverlay from './components/PersonaTransitionOverlay';
 
 import Landing from './pages/Landing';
 
@@ -31,6 +32,21 @@ function RouteFallback() {
   );
 }
 
+function GlobalPersonaTransitionManager() {
+  const { currentPersona } = useAuth();
+  const [transitionPersona, setTransitionPersona] = useState<PersonaKey | null>(null);
+  const prevPersonaRef = useRef<PersonaKey>(currentPersona);
+
+  useEffect(() => {
+    if (prevPersonaRef.current !== currentPersona) {
+      setTransitionPersona(currentPersona);
+      prevPersonaRef.current = currentPersona;
+    }
+  }, [currentPersona]);
+
+  return <PersonaTransitionOverlay personaKey={transitionPersona} onComplete={() => setTransitionPersona(null)} />;
+}
+
 export default function App() {
   const location = useLocation();
 
@@ -39,6 +55,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <GlobalPersonaTransitionManager />
         <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-300">
           {isLanding ? (
             <Landing />

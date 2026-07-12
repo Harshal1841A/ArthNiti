@@ -33,14 +33,17 @@ export default function SHAPWaterfall({ factors }: SHAPWaterfallProps) {
             tickLine={false}
           />
           <Tooltip
-            cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+            cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
             contentStyle={{
-              backgroundColor: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.1)',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
               borderRadius: 8,
-              fontSize: 12,
+              fontSize: 13,
               color: '#f8fafc',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.6)',
             }}
+            labelStyle={{ color: '#38bdf8', fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}
+            itemStyle={{ color: '#f8fafc', fontWeight: 600, fontSize: '13px' }}
           />
           <ReferenceLine x={0} stroke="#475569" strokeDasharray="3 3" />
           <Bar dataKey="value" radius={[4, 4, 4, 4]} animationDuration={800} animationBegin={200}>

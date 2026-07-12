@@ -337,10 +337,22 @@ export default function Dashboard() {
           {scores.length > 0 && scores.some((s: any) => s.count > 0) ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={scores}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="tier" tick={{ fontSize: 11, fontFamily: 'JetBrains Mono', fill: 'var(--text-secondary)' }} />
-                <YAxis tick={{ fontSize: 11, fontFamily: 'JetBrains Mono', fill: 'var(--text-secondary)' }} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" />
+                <XAxis dataKey="tier" tick={{ fontSize: 11, fontFamily: 'JetBrains Mono', fill: '#cbd5e1', fontWeight: 600 }} />
+                <YAxis tick={{ fontSize: 11, fontFamily: 'JetBrains Mono', fill: '#cbd5e1', fontWeight: 600 }} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255, 255, 255, 0.06)' }}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#f8fafc',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.6)',
+                  }}
+                  labelStyle={{ color: '#38bdf8', fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}
+                  itemStyle={{ color: '#f8fafc', fontWeight: 600, fontSize: '13px' }}
+                />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {scores.map((d: any) => (
                     <Cell key={d.tier} fill={tierColor(d.tier)} />
