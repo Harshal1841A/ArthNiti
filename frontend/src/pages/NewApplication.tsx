@@ -153,7 +153,6 @@ export default function NewApplication() {
                 </select>
               </div>
               <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-                {/* BUG-26 FIX: Validate businessName is non-empty before advancing to Step 2. */}
                 <button
                   type="button"
                   onClick={() => {

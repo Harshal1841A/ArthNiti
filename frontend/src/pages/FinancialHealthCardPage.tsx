@@ -171,9 +171,6 @@ export default function FinancialHealthCardPage() {
           setRouting(d.routing);
           setOffers((d.loan_offers && d.loan_offers.length > 0) ? d.loan_offers : DEFAULT_FALLBACK_OFFERS);
           setDemoNarratives(d.xai_narrative);
-          // BUG-B4 FIX: Use 'en' as initial language here — language switching is handled
-          // by a separate useEffect below (language, demoNarratives deps) so we don't
-          // capture `language` inside loadData's closure (was a stale-closure bug).
           const initialNarrative = d.xai_narrative['en'] || Object.values(d.xai_narrative)[0] || '';
           const xaiPayload = {
             xai_id: `DEMO-XAI-${id}`,
@@ -196,16 +193,12 @@ export default function FinancialHealthCardPage() {
         }
       }
 
-      // BUG-17 FIX: Fetch the specific applicant by ID instead of loading all applicants
-      // and filtering client-side. The new GET /v1/applicants/{id} endpoint is O(1) vs O(n).
       appResp = await api.get(`/v1/applicants/${id}`).catch(() => ({ data: null }));
       setApplicant(appResp.data || null);
 
       const scoreResp = await api.get(`/v1/score?applicant_id=${id}`).catch(() => ({ data: [] }));
       const scores = Array.isArray(scoreResp.data) ? scoreResp.data : [];
       if (scores.length) {
-        // NEW-05 FIX: Backend returns DESC order (order_by computed_at.desc()), so scores[0] is the LATEST score.
-        // Previously used scores[scores.length - 1], which picked the oldest historical score instead!
         const latest = scores[0];
         setScore(latest);
         // Isolated: routing failure must not crash the page
@@ -238,7 +231,6 @@ export default function FinancialHealthCardPage() {
     }
   }, [id, isDemo, isRestrictedBorrower]);
 
-  // BUG-05 & NEW-04 FIX: loadData is now a stable useCallback triggered when id changes.
   useEffect(() => { if (id) loadData(); }, [id, loadData]);
 
   useEffect(() => {
@@ -309,8 +301,6 @@ export default function FinancialHealthCardPage() {
       }
 
       const consentHandle = activeConsents[0].consent_handle;
-      // BUG-03 FIX: Send applicant_id and consent_handle in POST body, not query string.
-      // Query string params get logged by every proxy, CDN, and browser history.
       await api.post(`/v1/consent/aa/fetch`, { applicant_id: id, consent_handle: consentHandle });
       await loadData();
     } catch (e: any) {
@@ -575,13 +565,13 @@ export default function FinancialHealthCardPage() {
           {/* Overview Tab: Score + Card Row + SHAP + What-If */}
           {(activeTab === 'overview' || activeTab === 'all') && (
             <div className="space-y-6 mb-8">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-xs text-[var(--text-secondary)] flex items-start gap-3 shadow-sm">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] font-bold font-mono text-sm border border-[var(--accent)]/30">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-xs text-[var(--text-secondary)] flex items-start gap-3.5 shadow-sm">
+                <div className="flex shrink-0 items-center justify-center px-2.5 py-1.5 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] font-bold font-mono text-xs tracking-wider border border-[var(--accent)]/30 select-none">
                   360°
                 </div>
                 <div>
-                  <strong className="text-[var(--text-primary)] font-sans text-sm">Why is this called a 360° Financial Health Card?</strong>
-                  <p className="mt-1 leading-relaxed">
+                  <strong className="text-[var(--text-primary)] font-sans text-sm block mb-1">Why is this called a 360° Financial Health Card?</strong>
+                  <p className="leading-relaxed">
                     Unlike traditional banks that rely on a single static bureau check (CIBIL) or PDF statement, ArthNiti evaluates your business across all 360 degrees of financial health: <span className="text-[var(--text-primary)] font-semibold">Bank Account Aggregator cash flow velocity</span>, <span className="text-[var(--text-primary)] font-semibold">14-month GSTR-3B tax compliance</span>, <span className="text-[var(--text-primary)] font-semibold">OCEN daily UPI settlements</span>, and <span className="text-[var(--text-primary)] font-semibold">AI explainability (SHAP factors)</span>. Just like a medical health report card, it synthesizes every vital sign into one actionable score.
                   </p>
                 </div>

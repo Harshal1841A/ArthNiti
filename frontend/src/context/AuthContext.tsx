@@ -72,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentPersonaState(key);
       try {
         localStorage.setItem('arthniti_demo_persona', key);
-        // NEW-07 FIX: Map applicant -> borrower, credit_officer -> underwriter, admin -> admin correctly
         const legacyMapping = key === 'applicant' ? 'borrower' : (key === 'credit_officer' ? 'underwriter' : 'admin');
         localStorage.setItem('arthniti_persona', legacyMapping);
       } catch {}

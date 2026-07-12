@@ -35,8 +35,6 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
   const handlePersonaChange = (target: 'borrower' | 'underwriter') => {
     if (target === 'borrower') {
       setPersona('applicant');
-      // BUG-A7 FIX: Redirect unless on the borrower's OWN profile (APP-SURESH).
-      // Previously any APP-* path was allowed, letting borrowers land on other MSMEs' pages.
       const isOwnProfile = pathname.includes('APP-SURESH');
       if (
         pathname.startsWith('/reviews') ||

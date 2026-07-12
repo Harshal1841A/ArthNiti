@@ -26,8 +26,6 @@ export default function Navbar() {
   const handleNavbarPersonaChange = (key: PersonaKey) => {
     setPersona(key);
     if (key === 'applicant') {
-      // BUG-A7/A8 FIX: Guard must redirect unless on the borrower's OWN profile (APP-SURESH).
-      // Previously any APP-* path was excluded, letting borrowers see other MSMEs' data.
       const isOwnProfile = pathname.includes('APP-SURESH');
       if (
         pathname.startsWith('/reviews') ||
@@ -45,8 +43,6 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // BUG-B1 FIX: Track whether we've fetched at least once to avoid re-firing the
-  // full (non-silent) fetch on every persona switch if alerts are already loaded.
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -81,9 +77,7 @@ export default function Navbar() {
       const res = await api.get('/v1/reviews?limit=20');
       setAlerts(res.data || []);
     } catch {
-      // BUG-A1 FIX: On error, KEEP existing alerts — do not overwrite with hardcoded
-      // mock data. Transient network errors should not inject fake "Arjun Textiles"
-      // alerts that mislead the underwriter. Only clear loading state.
+      // Ignore transient network errors
     } finally {
       setLoading(false);
     }
@@ -97,7 +91,6 @@ export default function Navbar() {
     ...(pathname === '/applicants' ? [{ label: 'MSME Profiles' }] : []),
     ...(pathname === '/applicants/new' ? [{ label: 'MSME Profiles', to: '/applicants' }, { label: 'New Application' }] : []),
     ...(pathname.startsWith('/applicants/') && !pathname.includes('/new') ? [{ label: 'MSME Profiles', to: '/applicants' }, { label: 'Profile Details' }] : []),
-    // BUG-C6 FIX: Breadcrumb for /reviews was showing only 'Underwriting' — now shows full path.
     ...(pathname === '/reviews' ? [{ label: 'Underwriting', to: '/reviews' }, { label: 'Review Queue' }] : []),
     ...(pathname === '/adapters' ? [{ label: 'System Adapters' }] : []),
   ];

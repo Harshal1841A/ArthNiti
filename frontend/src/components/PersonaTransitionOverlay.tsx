@@ -130,17 +130,17 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: -20, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-            className="relative overflow-hidden rounded-3xl border bg-[#0f172a]/95 p-8 shadow-2xl max-w-lg w-full mx-4"
+            className="relative overflow-hidden rounded-3xl border bg-[var(--bg-elevated)] p-8 shadow-2xl max-w-lg w-full mx-4 text-[var(--text-primary)]"
             style={{
               borderColor: currentConfig.border,
-              boxShadow: `0 25px 60px -15px rgba(0,0,0,0.8), 0 0 35px ${currentConfig.glow}`,
+              boxShadow: `0 25px 60px -15px rgba(0,0,0,0.5), 0 0 35px ${currentConfig.glow}`,
             }}
           >
             {/* Top Scanning Status Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-6">
               <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 animate-spin text-slate-400" style={{ animationDuration: '4s' }} />
-                <span className="text-xs font-mono font-bold tracking-widest uppercase text-slate-400">
+                <Cpu className="h-4 w-4 animate-spin text-[var(--text-secondary)]" style={{ animationDuration: '4s' }} />
+                <span className="text-xs font-mono font-bold tracking-widest uppercase text-[var(--text-secondary)]">
                   CONTEXT SHIFT • ARTHNITI v1.4
                 </span>
               </div>
@@ -162,7 +162,7 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
                 initial={{ rotate: -15, scale: 0.8 }}
                 animate={{ rotate: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.1 }}
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border bg-slate-900/90 shadow-inner"
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border bg-[var(--bg-card)] shadow-inner"
                 style={{
                   borderColor: currentConfig.border,
                   boxShadow: `0 0 20px ${currentConfig.glow}`,
@@ -173,15 +173,15 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
 
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
                     Active Persona Identity
                   </span>
                   <CheckCircle2 className="h-3.5 w-3.5" style={{ color: currentConfig.color }} />
                 </div>
-                <h3 className="text-2xl font-black tracking-tight text-white mt-0.5">
+                <h3 className="text-2xl font-black tracking-tight text-[var(--text-primary)] mt-0.5">
                   {persona.name}
                 </h3>
-                <p className="text-xs font-medium text-slate-300 mt-1">
+                <p className="text-xs font-medium text-[var(--text-secondary)] mt-1">
                   {persona.title}
                 </p>
               </div>
@@ -189,18 +189,13 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
 
             {/* Subtitle Description */}
             <div
-              className="rounded-2xl p-4 border text-xs font-medium leading-relaxed"
-              style={{
-                backgroundColor: 'rgba(30, 41, 59, 0.6)',
-                borderColor: 'rgba(51, 65, 85, 0.8)',
-                color: '#e2e8f0',
-              }}
+              className="rounded-2xl p-4 border text-xs font-medium leading-relaxed bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-primary)]"
             >
               {currentConfig.subtitle}
             </div>
 
             {/* Progress Scanning Bar */}
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between text-[11px] text-[var(--text-secondary)] font-mono">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" style={{ color: currentConfig.color }} />
                 Initializing workspace credentials...
