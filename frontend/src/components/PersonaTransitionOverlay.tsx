@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Briefcase, Store, Cpu, Sparkles, CheckCircle2 } from 'lucide-react';
 import { PersonaKey, PERSONAS } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 interface PersonaTransitionOverlayProps {
   personaKey: PersonaKey | null;
@@ -98,6 +99,14 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
 
   const currentConfig = configMap[activePersona];
 
+  let isBlanc = false;
+  try {
+    const { theme } = useTheme();
+    isBlanc = theme === 'blanc';
+  } catch {
+    isBlanc = document.documentElement.getAttribute('data-theme') === 'blanc';
+  }
+
   return (
     <AnimatePresence>
       {activePersona && (
@@ -110,7 +119,9 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
             setActivePersona(null);
             onComplete?.();
           }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-md cursor-pointer font-sans select-none"
+          className={`fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md cursor-pointer font-sans select-none ${
+            isBlanc ? 'bg-slate-900/35' : 'bg-black/65'
+          }`}
         >
           {/* Cybernetic Scan Line */}
           <motion.div
@@ -130,17 +141,21 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: -20, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-            className="relative overflow-hidden rounded-3xl border bg-[#0f172a]/95 p-8 shadow-2xl max-w-lg w-full mx-4"
+            className={`relative overflow-hidden rounded-3xl border p-8 shadow-2xl max-w-lg w-full mx-4 ${
+              isBlanc ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/50' : 'bg-[#0f172a]/95 border-slate-800 text-white'
+            }`}
             style={{
               borderColor: currentConfig.border,
-              boxShadow: `0 25px 60px -15px rgba(0,0,0,0.8), 0 0 35px ${currentConfig.glow}`,
+              boxShadow: isBlanc
+                ? `0 25px 60px -15px rgba(15, 23, 42, 0.15), 0 0 35px ${currentConfig.glow}`
+                : `0 25px 60px -15px rgba(0,0,0,0.8), 0 0 35px ${currentConfig.glow}`,
             }}
           >
             {/* Top Scanning Status Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <div className={`flex items-center justify-between border-b pb-4 mb-6 ${isBlanc ? 'border-slate-200' : 'border-slate-800'}`}>
               <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 animate-spin text-slate-400" style={{ animationDuration: '4s' }} />
-                <span className="text-xs font-mono font-bold tracking-widest uppercase text-slate-400">
+                <Cpu className={`h-4 w-4 animate-spin ${isBlanc ? 'text-slate-500' : 'text-slate-400'}`} style={{ animationDuration: '4s' }} />
+                <span className={`text-xs font-mono font-bold tracking-widest uppercase ${isBlanc ? 'text-slate-500' : 'text-slate-400'}`}>
                   CONTEXT SHIFT • ARTHNITI v1.4
                 </span>
               </div>
@@ -162,7 +177,9 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
                 initial={{ rotate: -15, scale: 0.8 }}
                 animate={{ rotate: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.1 }}
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border bg-slate-900/90 shadow-inner"
+                className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border shadow-inner ${
+                  isBlanc ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/90'
+                }`}
                 style={{
                   borderColor: currentConfig.border,
                   boxShadow: `0 0 20px ${currentConfig.glow}`,
@@ -173,15 +190,15 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
 
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${isBlanc ? 'text-slate-500' : 'text-slate-400'}`}>
                     Active Persona Identity
                   </span>
                   <CheckCircle2 className="h-3.5 w-3.5" style={{ color: currentConfig.color }} />
                 </div>
-                <h3 className="text-2xl font-black tracking-tight text-white mt-0.5">
+                <h3 className={`text-2xl font-black tracking-tight mt-0.5 ${isBlanc ? 'text-slate-900' : 'text-white'}`}>
                   {persona.name}
                 </h3>
-                <p className="text-xs font-medium text-slate-300 mt-1">
+                <p className={`text-xs font-medium mt-1 ${isBlanc ? 'text-slate-600' : 'text-slate-300'}`}>
                   {persona.title}
                 </p>
               </div>
@@ -191,16 +208,18 @@ export default function PersonaTransitionOverlay({ personaKey, onComplete }: Per
             <div
               className="rounded-2xl p-4 border text-xs font-medium leading-relaxed"
               style={{
-                backgroundColor: 'rgba(30, 41, 59, 0.6)',
-                borderColor: 'rgba(51, 65, 85, 0.8)',
-                color: '#e2e8f0',
+                backgroundColor: isBlanc ? 'rgba(248, 250, 252, 0.9)' : 'rgba(30, 41, 59, 0.6)',
+                borderColor: isBlanc ? 'rgba(226, 232, 240, 0.9)' : 'rgba(51, 65, 85, 0.8)',
+                color: isBlanc ? '#334155' : '#e2e8f0',
               }}
             >
               {currentConfig.subtitle}
             </div>
 
             {/* Progress Scanning Bar */}
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <div className={`mt-6 pt-4 border-t flex items-center justify-between text-[11px] font-mono ${
+              isBlanc ? 'border-slate-200 text-slate-500' : 'border-slate-800/80 text-slate-400'
+            }`}>
               <span className="flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" style={{ color: currentConfig.color }} />
                 Initializing workspace credentials...
