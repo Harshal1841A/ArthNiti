@@ -9,129 +9,88 @@ app_port: 7860
 ---
 
 # ArthNiti
-
-**AI/ML-Driven MSME Financial Health Card with AA/OCEN/ULI Integration**
-
-IDBI Innovate 2026 — Track 03 (Financial Inclusion / Digital Lending / Credit Decisioning)
+**MSME Financial Health Card using alternate data (GST, UPI/bank AA, EPFO) for NTC/NTB credit underwriting. Built for IDBI Innovate 2026, Track 03.**
 
 ---
 
-## What This Is
-
-ArthNiti computes a multidimensional MSME Financial Health Score from alternate data (GST, UPI, AA bank statements, EPFO) for businesses that traditional bureau-based underwriting rejects. The score, its visualized strengths/risks breakdown, and a human-readable explanation are delivered through a real-time decisioning path with **no LLM in the synchronous path**.
-
-## Architecture
-
-```
-AA Adapter (real sandbox) → Normalized Feature Schema → XGBoost + SHAP Core
-OCEN Adapter (spec stub)                              → Score + Tier
-ULI Adapter (spec stub)                               → XAI Narrative (LLM, async)
-Document Fallback (LLM, async)                        → Arth-Mitra TTS
-```
-
-## Honest Integration Status
-
-| Ecosystem | Status |
-|---|---|
-| **Account Aggregator (AA)** | **REAL** — Finvu sandbox, ReBIT-spec FIU integration |
-| **OCEN** | Spec-compliant stub, mocked LSP traffic |
-| **ULI** | Spec-compliant stub, no public sandbox |
-| **GST/EPFO via AA** | Unconfirmed — verify FI-type availability in your sandbox |
-
-## Quick Start
-
-### 1. Install dependencies
+## Quickstart
 
 ```bash
-cd arthniti
-pip install -r requirements.txt
-```
-
-### 2. Generate synthetic training data
-
-```bash
+git clone https://github.com/Harshal1841A/ArthNiti.git
+cd ArthNiti
+cp .env.example .env   # then fill in ARTHNITI_API_KEY, VITE_API_KEY (must match), NVIDIA_API_KEY
 python backend/data/generate_synthetic_training_data.py --n 2000 --seed 42
-```
-
-### 3. Train the model
-
-```bash
 python backend/train_model.py
+uvicorn backend.main:app --reload
 ```
 
-### 4. Run the build-critical test suite
+In a separate terminal, start the frontend dev server:
 
 ```bash
-python scripts/test_prototype.py
+cd frontend && npm install && npm run dev
 ```
 
-**This is a build failure if AUC is outside 0.68–0.85.** Do not proceed if this fails.
+> **IMPORTANT: `ARTHNITI_API_KEY` is required, not optional, if `DEMO_MODE=true`.**  
+> The backend server refuses to start if `DEMO_MODE=true` is set without configuring `ARTHNITI_API_KEY` (enforced by `backend/main.py`'s lifespan check). Both `ARTHNITI_API_KEY` on the backend and `VITE_API_KEY` on the frontend must be configured and match exactly. For full architectural details on fail-closed authentication and security boundaries, see [`docs/RISK_AND_COMPLIANCE.md`](file:///docs/RISK_AND_COMPLIANCE.md).
 
-### 5. Run the backend
+---
+
+## Architecture Summary
+
+- **Deterministic XGBoost + SHAP Scoring Core:** Real-time financial health scoring runs synchronously in single-digit milliseconds (`backend/core/scoring_engine.py`). There is **no LLM in the synchronous scoring path**.
+- **Cross-Checked XAI Narrative:** An LLM (primary: NVIDIA Nemotron 3 Ultra; fallback: Google Gemma 4 31B) asynchronously drafts plain-language credit explanations after deterministic scoring completes. Every numeric claim in the narrative is automatically cross-checked against actual SHAP feature attributions before display (`backend/core/xai_narrative.py`).
+- **Persona-Based Access Control:** Role boundaries across Admin, Credit Officer, and Borrower personas are enforced on every navigation by [`PersonaGuard`](file:///frontend/src/components/PersonaGuard.tsx) and [`ApplicantOwnershipGuard`](file:///frontend/src/components/PersonaGuard.tsx). A Borrower persona can only access and view their own linked dossier.
+- **Honest Dashboard Failure States:** If live applicant data cannot load, the dashboard renders an honest error state (`frontend/src/pages/Dashboard.tsx`) rather than substituting fabricated placeholder data.
+
+---
+
+## Real vs. Stub Implementation Status
+
+| Component | Status | Verification & Implementation Details |
+| :--- | :--- | :--- |
+| **Account Aggregator (AA)** | **Real** | Integrates with the Finvu sandbox following ReBIT specifications with ECDH/JWE decryption (`backend/adapters/aa_adapter.py`). |
+| **XGBoost + SHAP Scoring** | **Real** | Trained XGBoost model with SHAP TreeExplainer feature attributions (`backend/core/scoring_engine.py`). |
+| **XAI Narrative Generation** | **Real** | Asynchronous LLM generation with deterministic numeric cross-checking (`backend/core/xai_narrative.py`). |
+| **OCEN Loan Offers** | **Real Math / Illustrative Lenders** | Real reducing-balance EMI and interest calculations (`_emi`, `_total_interest`), paired with illustrative lender identities (`backend/adapters/ocen_adapter.py`). |
+| **Unified Lending Interface (ULI)** | **Spec-Compliant Stub** | Shaped to RBI ULI eligibility check specification; no public developer sandbox exists (`backend/adapters/uli_adapter.py`). |
+| **Arth-Mitra Indic TTS** | **Real Synthesis** | Multilingual speech synthesis with an explicit server-side to browser fallback chain (`backend/core/arth_mitra.py`). |
+| **Authentication & Access Gate** | **Real Shared-Token (Fail-Closed)** | Enforces bearer token verification on write routes and refuses startup if `DEMO_MODE=true` without a configured key (`backend/api/deps.py`, `backend/main.py`). |
+
+---
+
+## Testing & Verification
+
+Run the verification suites directly from the repository root:
 
 ```bash
-uvicorn backend.main:app --reload --port 8000
+python scripts/test_prototype.py     # build gate — 7 checks
+python -m pytest tests/ -q            # integration suite
+python scripts/load_smoke_test.py     # load test
 ```
 
-### 6. Run the frontend (separate terminal)
+### Current Verified Pass Counts
+- **`scripts/test_prototype.py`:** **7 / 7 checks passed** (Backend Syntax, Synthetic Dataset Generation, Feature Schema Consistency, Routing Logic, XAI Numeric Cross-Check, Data Completeness Gate, and Model AUC within target bounds).
+- **`pytest tests/`:** **19 / 19 tests passed** covering API integration, authentication fail-closed rules, and data adapters.
+- **`scripts/load_smoke_test.py`:** **50 / 50 requests passed** (100% pass rate under concurrent load against a running server).
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+---
 
-### 7. Or use Docker
+## Known Limitations
 
-```bash
-docker-compose up --build
-```
+- **Synthetic Training Data:** Synthetic-data AUC is not predictive of real-world underwriting performance. Validation against historical real-world borrower outcomes is the mandatory next project milestone.
+- **Shared Demo Authentication:** The prototype uses a shared demo-scoped API key (`ARTHNITI_API_KEY`) rather than per-officer Role-Based Access Control (RBAC) tokens.
+- **Sandbox Availability:** OCEN and ULI integrations are spec-compliant stubs pending official live sandbox credentials.
 
-## Environment Variables
+---
 
-```bash
-DATABASE_URL=sqlite+aiosqlite:///./data/arthniti.db
-NVIDIA_API_KEY=your_nvidia_key           # Primary: NVIDIA Nemotron Ultra
-NVIDIA_FALLBACK_API_KEY=your_gemma_key   # Fallback: Google Gemma 4 31B (Model-tier fallback)
-BHASHINI_API_KEY=your_bhashini_key       # Optional — TTS fallback chain exists
-FIU_PRIVATE_KEY_JWK=your_fiu_private_key # For AA JWE decryption
-```
+## Branding & Design System
 
-## Key Corrections from Brutal Audit (v1.4 Final)
+ArthNiti uses the Midnight Ledger design token system (`noir` and `blanc` themes defined in `frontend/src/index.css`). Visual assets and logos are maintained in [`docs/branding/`](file:///docs/branding/).
 
-1. **Synthetic data generator FIXED** — labels now reflect REAL credit logic (weighted sum of features: bounce = -0.35, volatility = -0.25, GST regularity = +0.30, etc.) with controlled noise. AUC target: **0.72–0.78**. Below 0.68 = build failure. Above 0.85 = leakage flag.
-2. **F10 (Counterparty Reputation Ratio) REMOVED** — built on a fundamental misunderstanding of AA data scope. ReBIT DEPOSIT schema includes `accountType` for the applicant's own accounts, not counterparties.
-3. **Cross-check regex FIXED** — now handles negative SHAP values, decimals, and percentages correctly.
-4. **Document upload TRULY ASYNC** — uses FastAPI `BackgroundTasks` with a status polling endpoint.
-5. **F9 routing FIXED** — WATCH/HIGH_RISK routes to human officer review, not absurd document re-upload.
-6. **Async SQLAlchemy & SQLite StaticPool** — all routes use `async def` with `AsyncSession`, configured with WAL mode and `StaticPool` to eliminate database file lock contention under parallel async workloads.
-7. **LLM client interface DEFINED** — wraps OpenAI SDK for NVIDIA Nemotron Ultra primary + Google Gemma fallback.
-8. **All 14 route handlers IMPLEMENTED** — none are stubs.
-9. **SHAP shape guard** — handles binary classification return shape differences across versions.
-10. **Minimum data completeness guard** — rejects scoring when `data_completeness_pct < 20%`.
-11. **ArthMitraPlayer Vernacular Audio & Pause Race Condition FIXED** — robust dual-mode audio support across all Indic languages (Hindi, Tamil, Telugu, Marathi, Gujarati, Kannada). Fixed HTML5 `Audio.play()` `AbortError` interception and `speechSynthesis` cancellation traps (`isStoppedRef`) to eliminate audio repetition on pause and ensure reliable speech synthesis.
-12. **Unified Signature UI Loading (`RupeeLoader`)** — standardized all component loading states (`DemoPage`, `FinancialHealthCardPage`, `ReviewQueuePage`, `ApplicantsList`) to use the branded Rupee symbol animation.
-13. **Comprehensive Test Suite Passing** — 24/24 integration and prototype tests (`test_prototype.py` + `test_api_integration.py`) passing with 100% API contract consistency.
+---
 
-## Project Structure
+## Links
 
-```
-arthniti/
-├── backend/
-│   ├── core/           # Scoring engine, XAI, routing, TTS
-│   ├── adapters/       # AA, OCEN, ULI, document fallback
-│   ├── api/routes/     # 14 FastAPI route handlers
-│   ├── database/       # Async SQLAlchemy models & StaticPool session
-│   ├── data/           # Synthetic data generator
-│   ├── main.py         # FastAPI entry point
-│   └── train_model.py  # XGBoost training script
-├── frontend/           # React 18 + Vite + Tailwind + ArthMitra Indic TTS
-├── scripts/            # FIU key generation & automated prototype tests
-├── tests/              # Full E2E integration test suite
-├── docker-compose.yml
-└── requirements.txt
-```
-
-## License
-
-Hackathon project — IDBI Innovate 2026. For demonstration purposes.
+- **Team:** Team Rocket
+- **GitHub Repository:** [https://github.com/Harshal1841A/ArthNiti](https://github.com/Harshal1841A/ArthNiti)
+- **Live Deployed Space:** [https://huggingface.co/spaces/NeuralHU/ArthNiti](https://huggingface.co/spaces/NeuralHU/ArthNiti)

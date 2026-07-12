@@ -123,7 +123,7 @@ async def run_load_test(base_url: str, n: int, concurrency: int):
         print(f"\n  [FAIL] p95 latency {p95:.0f}ms exceeds 2000ms gate.")
         return False
 
-    print(f"\n  [PASS] All gates met (≥95% pass, p95 < 2000ms).")
+    print(f"\n  [PASS] All gates met (>=95% pass, p95 < 2000ms).")
     return True
 
 
