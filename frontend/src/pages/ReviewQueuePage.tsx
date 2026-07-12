@@ -47,6 +47,7 @@ export default function ReviewQueuePage() {
     setError('');
     setIsFallback(false);
 
+    // Ensure demo personas and review queue are seeded before fetching
     await api.post('/v1/demo/seed').catch(() => null);
 
     for (let attempt = 0; attempt <= retries; attempt++) {

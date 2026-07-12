@@ -232,3 +232,47 @@ def test_xai_cross_check_fails_for_hallucinated_number():
     result = cross_check_narrative(narrative, score_result)
     assert result["passed"] is False
     assert len(result["unsupported_claims"]) > 0
+
+
+# ─────────────────────────────────────────
+# Startup safety — DEMO_MODE / missing-key misconfiguration
+# ─────────────────────────────────────────
+#
+# This exact misconfiguration (DEMO_MODE=true, ARTHNITI_API_KEY unset) has
+# been reachable live twice: once via an unconditional fail-open bypass, and
+# again because the shipped .env set VITE_API_KEY but not ARTHNITI_API_KEY —
+# verified exploitable with a bare curl and zero auth header. This test
+# doesn't re-run the app's process-level startup check (that's a subprocess
+# exit-code test, not an in-process pytest case), but it locks down the
+# request-level behavior so the underlying bypass can't come back even if
+# main.py's startup guard is ever weakened or bypassed some other way.
+
+def test_verify_api_key_stays_closed_without_explicit_insecure_opt_in(monkeypatch):
+    """DEMO_MODE alone must never be sufficient to disable auth — only the
+    separate, explicitly-named ARTHNITI_ALLOW_INSECURE_DEMO flag may do that."""
+    from backend.api import deps
+
+    monkeypatch.delenv("ARTHNITI_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.setenv("DEMO_MODE", "true")
+    monkeypatch.delenv("ARTHNITI_ALLOW_INSECURE_DEMO", raising=False)
+
+    from fastapi import HTTPException
+    try:
+        deps.verify_api_key(credentials=None)
+        assert False, "Expected verify_api_key to reject when no key and no explicit opt-in are set"
+    except HTTPException as exc:
+        assert exc.status_code in (401, 503)
+
+
+def test_verify_api_key_allows_with_explicit_insecure_opt_in(monkeypatch):
+    """The escape hatch must still work for its intended local-testing use case."""
+    from backend.api import deps
+
+    monkeypatch.delenv("ARTHNITI_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.setenv("DEMO_MODE", "true")
+    monkeypatch.setenv("ARTHNITI_ALLOW_INSECURE_DEMO", "true")
+
+    result = deps.verify_api_key(credentials=None)
+    assert result == "demo"

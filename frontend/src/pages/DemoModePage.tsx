@@ -13,6 +13,8 @@ import {
 import MultiAgentViz from '@/components/MultiAgentViz';
 import { tierColor } from '@/lib/tierColors';
 
+// BUG-13 FIX: All IDs must match backend demo_personas.py seeds.
+// demo-ramesh / demo-priya / demo-suresh are not real IDs — they would 404.
 const PERSONAS = [
   { id: 'APP-RAMESH', name: 'Ramesh', business: 'Ramesh General Store', city: 'Indore', industry: 'Retail', tier: 'ADEQUATE', score: 72, desc: 'Stable inflows, good GST compliance, low bounce count' },
   { id: 'APP-PRIYA', name: 'Priya', business: 'Priya Textiles', city: 'Surat', industry: 'Manufacturing', tier: 'STRONG', score: 85, desc: 'Exceptional GST filing, zero bounces, growing payroll' },

@@ -5,6 +5,7 @@ Initializes database, scoring core, and registers all routes.
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -51,6 +52,32 @@ async def lifespan(app: FastAPI):
     the first request is not blocked. The scoring core becomes available within
     1-2 seconds on a warm container; graceful 503 is returned until then.
     """
+    # Refuse to start rather than silently serving with auth disabled. This has
+    # now happened twice for real: once as an unconditional DEMO_MODE bypass,
+    # and again because the shipped .env sets VITE_API_KEY (frontend) but not
+    # ARTHNITI_API_KEY (backend) — the exact "operator forgot to configure the
+    # key" scenario deps.py's fail-open path was written to tolerate. Patching
+    # the .env template is not enough on its own, since nothing stops the next
+    # copy-paste from dropping the line again. This check makes that specific
+    # mistake impossible to deploy silently: with DEMO_MODE on and no key
+    # configured, the process exits immediately with a clear message instead
+    # of coming up healthy and quietly accepting unauthenticated writes.
+    _demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("true", "1", "yes")
+    _has_key = bool(os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY"))
+    _insecure_opt_in = os.environ.get("ARTHNITI_ALLOW_INSECURE_DEMO", "").lower() in ("true", "1", "yes")
+    if _demo_mode and not _has_key and not _insecure_opt_in:
+        raise RuntimeError(
+            "\n\n"
+            "REFUSING TO START: DEMO_MODE=true but no ARTHNITI_API_KEY is configured.\n"
+            "This combination silently disables authentication on all write routes\n"
+            "(see backend/api/deps.py). This is not a warning — the server will not\n"
+            "start until you either:\n"
+            "  1) set ARTHNITI_API_KEY to a real value (recommended, matches\n"
+            "     VITE_API_KEY on the frontend), or\n"
+            "  2) explicitly set ARTHNITI_ALLOW_INSECURE_DEMO=true if you understand\n"
+            "     the risk and want the old fail-open behavior for local testing only.\n"
+        )
+
     # Step 1: Table creation is fast (DDL only when tables don't exist)
     await init_db()
 

@@ -45,12 +45,18 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security
     """
     expected_key = os.environ.get("ARTHNITI_API_KEY") or os.environ.get("API_KEY")
     demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("true", "1", "yes")
+    insecure_demo_opt_in = os.environ.get("ARTHNITI_ALLOW_INSECURE_DEMO", "").lower() in ("true", "1", "yes")
 
-    # BUG-02 FIX: In DEMO_MODE, if no API key is configured by the operator, allow
-    # requests without an API key so the demo UI works on HF Spaces out of the box.
-    # However, if ARTHNITI_API_KEY or API_KEY IS explicitly configured, strict auth
-    # verification must always be enforced even in DEMO_MODE.
-    if demo_mode and not expected_key:
+    # This fail-open path now requires an explicit, separate, loudly-named
+    # opt-in (ARTHNITI_ALLOW_INSECURE_DEMO) rather than triggering implicitly
+    # whenever DEMO_MODE is on and a key happens to be missing. The implicit
+    # version was reachable by simply following this project's own shipped
+    # .env template (which sets VITE_API_KEY but not ARTHNITI_API_KEY) —
+    # verified live: a bare curl with zero auth header created a real record.
+    # main.py's startup check also refuses to boot at all in that
+    # configuration unless this flag is set, so this branch should only ever
+    # be reached by someone who deliberately typed this exact variable name.
+    if demo_mode and not expected_key and insecure_demo_opt_in:
         return "demo"
 
     if not expected_key:

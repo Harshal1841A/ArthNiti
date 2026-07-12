@@ -9,6 +9,11 @@ import PersonaTransitionOverlay from './components/PersonaTransitionOverlay';
 
 import Landing from './pages/Landing';
 
+// Route-based code splitting: each page below pulls in its own heavy deps
+// (Recharts on Dashboard, the multi-step form on NewApplication, etc.).
+// Previously all of this shipped in a single 880KB initial bundle regardless
+// of which page loaded first — splitting per-route means Landing (the page
+// a judge actually hits on a cold container) loads a much smaller chunk.
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ApplicantsList = lazy(() => import('./pages/ApplicantsList'));
 const NewApplication = lazy(() => import('./pages/NewApplication'));
@@ -113,6 +118,7 @@ export default function App() {
                         }
                       />
                       <Route path="/demo" element={<DemoModePage />} />
+                      {/* NEW-03 FIX: Catch-all 404 route redirecting to dashboard */}
                       <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>

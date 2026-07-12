@@ -20,6 +20,7 @@ import ArthMitraPlayer, {
   ALL_NARRATIVES,
 } from '@/components/ArthMitraPlayer';
 
+// BUG-13 FIX: Use correct backend persona IDs (APP-MOHAMMED, APP-LAKSHMI)
 const DEMO_PERSONAS = [
   { id: 'APP-RAMESH', name: 'Ramesh Kumar', business: 'Ramesh General Store', city: 'Indore', score: 72, tier: 'ADEQUATE' },
   { id: 'APP-PRIYA', name: 'Priya Sharma', business: 'Priya Textiles', city: 'Surat', score: 85, tier: 'STRONG' },

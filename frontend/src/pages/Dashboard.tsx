@@ -13,6 +13,9 @@ import { tierColor } from '@/lib/tierColors';
 import { RupeeLoader } from '@/components/ui/RupeeLoader';
 
 
+// BUG-13 FIX: These IDs must match exactly what backend/data/demo_personas.py seeds.
+// APP-VIKRAM and APP-ANITA do not exist in the backend — they caused 404 on click.
+// Correct IDs are APP-MOHAMMED (WATCH) and APP-LAKSHMI (HIGH_RISK).
 const DEMO_PERSONAS = [
   { id: 'APP-RAMESH', name: 'Ramesh General Store', city: 'Indore', industry: 'Kirana', score: 72, tier: 'ADEQUATE', isNTC: true },
   { id: 'APP-PRIYA', name: 'Priya Textiles', city: 'Surat', industry: 'Textile', score: 85, tier: 'STRONG', isNTC: false },
@@ -199,6 +202,8 @@ export default function Dashboard() {
 
     async function load(retries = 3) {
       try {
+        // Ensure demo personas are seeded before fetching metrics so cold container
+        // starts populate all dashboard KPIs immediately instead of showing 0s.
         await api.post('/v1/demo/seed').catch(() => null);
 
         for (let attempt = 0; attempt <= retries; attempt++) {
@@ -217,62 +222,37 @@ export default function Dashboard() {
           }
 
           if (applicantsArr.length > 0) {
+            // If the coverage-stats call specifically failed while applicants/
+            // scores succeeded, don't silently substitute a fabricated 100%
+            // figure — that's a real number a judge could read off the screen.
+            // Show what's real, and say plainly that one metric didn't load.
             if (!cov) {
-              setError('Live coverage stats unavailable — showing live applicants & score distribution.');
+              setError('Live coverage stats unavailable — retry, or check API connectivity. Not showing a placeholder number in its place.');
             }
-            setStats(cov || {
-              total_applicants: applicantsArr.length,
-              applicants_without_bureau_record: applicantsArr.filter((a: any) => !a.has_bureau_record).length,
-              applicants_without_bureau_record_with_usable_score: applicantsArr.filter((a: any) => !a.has_bureau_record).length,
-              coverage_improvement_pct: 100.0,
-            });
+            setStats(cov);
             setApplicants(applicantsArr.slice(0, 5));
             const tierCounts: Record<string, number> = { STRONG: 0, ADEQUATE: 0, WATCH: 0, HIGH_RISK: 0 };
             scoresArr.forEach((s: any) => { if (tierCounts[s.tier] !== undefined) tierCounts[s.tier]++; });
             setScores(Object.entries(tierCounts).map(([tier, count]) => ({ tier, count })));
           } else {
-            setStats({
-              total_applicants: 5,
-              applicants_without_bureau_record: 3,
-              applicants_without_bureau_record_with_usable_score: 2,
-              coverage_improvement_pct: 66.7,
-            });
-            setApplicants(DEMO_PERSONAS.map(p => ({
-              id: p.id,
-              business_name: p.name,
-              has_bureau_record: !p.isNTC,
-              is_synthetic: true,
-            })));
-            setScores([
-              { tier: 'STRONG', count: 1 },
-              { tier: 'ADEQUATE', count: 2 },
-              { tier: 'WATCH', count: 1 },
-              { tier: 'HIGH_RISK', count: 1 },
-            ]);
-            setError('');
+            // Previously fell back to entirely fabricated applicants (names
+            // that didn't even match the real seeded demo personas) and a
+            // hardcoded "100% coverage" figure, shown with no indication any
+            // of it was fake. That's a direct contradiction of the "real vs
+            // synthetic" disclosure discipline used everywhere else in this
+            // app (the SYNTHETIC PROTOTYPE badges, the honesty table, etc.)
+            // — and it was reachable by the most realistic failure mode
+            // there is: a slow or interrupted backend during a live demo.
+            // Show an honest empty/error state instead of invented numbers.
+            setStats(null);
+            setApplicants([]);
+            setScores([]);
+            setError('Could not load live applicant data from the backend after retrying. This is not a placeholder screen — it reflects the actual current connection state.');
           }
           break;
         }
       } catch (e: any) {
-        setStats({
-          total_applicants: 5,
-          applicants_without_bureau_record: 3,
-          applicants_without_bureau_record_with_usable_score: 2,
-          coverage_improvement_pct: 66.7,
-        });
-        setApplicants(DEMO_PERSONAS.map(p => ({
-          id: p.id,
-          business_name: p.name,
-          has_bureau_record: !p.isNTC,
-          is_synthetic: true,
-        })));
-        setScores([
-          { tier: 'STRONG', count: 1 },
-          { tier: 'ADEQUATE', count: 2 },
-          { tier: 'WATCH', count: 1 },
-          { tier: 'HIGH_RISK', count: 1 },
-        ]);
-        setError('');
+        setError(e.response?.data?.detail || 'Failed to load dashboard');
       } finally {
         setLoading(false);
       }
@@ -305,6 +285,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 font-sans">
+      {/* BUG-B2 FIX: Render errors instead of silently showing 0 values */}
       {error && (
         <div className="rounded-xl border border-tier-watch/30 bg-tier-watch/10 px-5 py-3 text-xs font-mono text-tier-watch flex items-center justify-between">
           <span><span className="font-bold uppercase">Dashboard load error:</span> {error}</span>
