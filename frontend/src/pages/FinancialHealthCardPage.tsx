@@ -216,7 +216,7 @@ export default function FinancialHealthCardPage() {
         }
       }
 
-      const offersUrl = (isDemo || appResp.data?.is_synthetic) ? `/v1/demo/offers/${id}` : `/v1/offers/${id}`;
+      const offersUrl = `/v1/offers/${id}`;
       const offersResp = await api.get(offersUrl).catch(() => ({ data: { offers: [] } }));
       const fetchedOffers = offersResp.data?.offers;
       setOffers((Array.isArray(fetchedOffers) && fetchedOffers.length > 0) ? fetchedOffers : DEFAULT_FALLBACK_OFFERS);
@@ -234,6 +234,12 @@ export default function FinancialHealthCardPage() {
   useEffect(() => { if (id) loadData(); }, [id, loadData]);
 
   useEffect(() => {
+    if (applicant && !score && !loading && !scoring && !fetchingData && applicant.is_synthetic) {
+      handleScore();
+    }
+  }, [applicant, score, loading]);
+
+  useEffect(() => {
     if (isDemo && demoNarratives && xai) {
       const updatedNarrative = demoNarratives[language] || demoNarratives['en'];
       setXai((prev: any) => prev ? { ...prev, narrative: updatedNarrative } : prev);
@@ -248,15 +254,18 @@ export default function FinancialHealthCardPage() {
     setScoringError('');
     setScoring(true);
     try {
-      // Synthetic applicants use the demo score endpoint which doesn't need NormalizedFeatures
-      const scoreUrl = applicant?.is_synthetic ? `/v1/demo/score/${id}` : `/v1/score/${id}`;
+      // First ensure synthetic features exist if not yet fetched
+      if (applicant?.is_synthetic) {
+        await api.post(`/v1/demo/fetch/${id}`).catch(() => null);
+      }
+      const scoreUrl = `/v1/score/${id}`;
       const resp = await api.post(scoreUrl);
       setScore(resp.data);
       // Routing — isolated, won't crash on miss
       const routingResp = await api.get(`/v1/routing/${resp.data.score_id}`).catch(() => ({ data: null }));
       if (routingResp.data) setRouting(routingResp.data);
       // Offers — isolated
-      const offersUrl = applicant?.is_synthetic ? `/v1/demo/offers/${id}` : `/v1/offers/${id}`;
+      const offersUrl = `/v1/offers/${id}`;
       const offersResp = await api.get(offersUrl).catch(() => ({ data: { offers: [] } }));
       const fetchedOffers = offersResp.data?.offers;
       setOffers((Array.isArray(fetchedOffers) && fetchedOffers.length > 0) ? fetchedOffers : DEFAULT_FALLBACK_OFFERS);
@@ -274,14 +283,15 @@ export default function FinancialHealthCardPage() {
   async function handleFetchData() {
     setFetchError('');
     setFetchingData(true);
-    // Synthetic / demo applicants: use the backend demo consent + mock-fetch flow
-    if (applicant?.is_synthetic) {
+    // Synthetic / demo applicants: seed synthetic telemetry and load data
+    if (applicant?.is_synthetic || id?.startsWith('APP-') || id?.startsWith('DEMO-')) {
       try {
-        // 1. Ensure ACTIVE consent exists in demo mode
-        await api.post(`/v1/demo/consent/${id}`).catch(() => null);
-        // 2. Short UX delay to show animation, then reload data
-        await new Promise(r => setTimeout(r, 1000));
+        await api.post(`/v1/demo/fetch/${id}`).catch(() => null);
+        await new Promise(r => setTimeout(r, 600));
         await loadData();
+        if (!score) {
+          await handleScore();
+        }
       } catch (e: any) {
         setFetchError('Demo data sync failed — try refreshing the page.');
       } finally {
