@@ -194,6 +194,8 @@ async def health_check():
 # everything else → SPA fallback (returns index.html for React Router routes)
 # ──────────────────────────────────────────────────────────────────────────────
 _DIST = Path(__file__).parent.parent / "frontend" / "dist"
+if not _DIST.is_dir():
+    _DIST = Path(__file__).parent / "static"
 
 if _DIST.is_dir():
     _ASSETS = _DIST / "assets"
