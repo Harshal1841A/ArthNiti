@@ -149,9 +149,9 @@ export default function Navbar() {
             onChange={(e) => handleNavbarPersonaChange(e.target.value as PersonaKey)}
             className="bg-transparent text-[var(--text-primary)] font-semibold text-xs focus:outline-none cursor-pointer"
           >
-            <option value="admin" className="bg-[var(--bg-card)] text-[var(--text-primary)]">Ananya Sharma (Admin)</option>
-            <option value="credit_officer" className="bg-[var(--bg-card)] text-[var(--text-primary)]">Rajesh Verma (Officer)</option>
-            <option value="applicant" className="bg-[var(--bg-card)] text-[var(--text-primary)]">Suresh Patel (Applicant)</option>
+            <option value="admin" style={{ backgroundColor: '#14151B', color: '#F2F0E9' }}>Ananya Sharma (Admin)</option>
+            <option value="credit_officer" style={{ backgroundColor: '#14151B', color: '#F2F0E9' }}>Rajesh Verma (Officer)</option>
+            <option value="applicant" style={{ backgroundColor: '#14151B', color: '#F2F0E9' }}>Suresh Patel (Applicant)</option>
           </select>
         </div>
 
