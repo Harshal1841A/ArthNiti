@@ -103,20 +103,20 @@ export function generateMandateReceiptPDF(offer: LoanOffer, mandateId: string): 
   const builder = new PDFContentBuilder();
 
   // ────────────────────────────────────────────────────────────────────────
-  // BACKGROUND WATERMARK LOGO & NAME
+  // BACKGROUND WATERMARK LOGO & NAME (Centered at x=297.5)
   // ────────────────────────────────────────────────────────────────────────
-  drawArthNitiLogo(builder, 297, 475, 3.2, true);
+  drawArthNitiLogo(builder, 297.5, 475, 3.2, true);
   builder.setColor(0.91, 0.90, 0.87);
-  builder.drawText(196, 365, 'ARTHNITI', 'F2', 36);
+  builder.drawText(213.5, 365, 'ARTHNITI', 'F2', 36);
 
   // ────────────────────────────────────────────────────────────────────────
   // TOP-LEFT CORNER LOGO & NAME
   // ────────────────────────────────────────────────────────────────────────
   drawArthNitiLogo(builder, 66, 796, 0.58, false);
   builder.setColor(0.08, 0.09, 0.12);
-  builder.drawText(44, 766, 'ArthNiti', 'F2', 12.5);
+  builder.drawText(44.5, 766, 'ArthNiti', 'F2', 12.5);
   builder.setColor(0.79, 0.66, 0.38);
-  builder.drawText(43, 754, 'MSME CARD', 'F2', 7.5);
+  builder.drawText(36, 754, 'MSME CARD', 'F2', 7.5);
 
   // ────────────────────────────────────────────────────────────────────────
   // MAIN HEADER TITLE (Right of Top-Left Logo)
