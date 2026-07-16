@@ -60,8 +60,24 @@ const DEFAULT_FALLBACK_OFFERS = [
   },
 ];
 
+const DEFAULT_WHAT_IF_FEATURES: Record<string, number> = {
+  gst_filing_regularity_12mo: 0.85,
+  bounce_count_90d: 0,
+  avg_closing_balance: 65000,
+  inflow_volatility_coefficient: 0.35,
+  payment_time_consistency_score: 0.8,
+  existing_emi_to_inflow_ratio: 0.25,
+};
+
 // Lightweight score simulation for What-If
-function simulateScore(features: Record<string, number>): { score: number; tier: string; factors: { feature: string; shap_value: number }[] } {
+function simulateScore(features: Record<string, number>): {
+  score: number;
+  tier: string;
+  contributing_factors: { feature: string; shap_value: number }[];
+  factors: { feature: string; shap_value: number }[];
+  inference_ms?: number;
+  model_version?: string;
+} {
   const bounce = features.bounce_count_90d ?? 0;
   const vol = features.inflow_volatility_coefficient ?? 0.5;
   const neg = features.days_with_negative_balance_90d ?? 0;
@@ -91,8 +107,16 @@ function simulateScore(features: Record<string, number>): { score: number; tier:
     { feature: 'bounce_count_90d', shap_value: -bounce * 0.08 },
   ].sort((a, b) => Math.abs(b.shap_value) - Math.abs(a.shap_value));
 
-  return { score, tier, factors };
+  return {
+    score,
+    tier,
+    contributing_factors: factors,
+    factors,
+    inference_ms: 12,
+    model_version: 'counterfactual_xgb_sim',
+  };
 }
+
 
 export default function FinancialHealthCardPage() {
   const { currentPersona, setPersona } = useAuth();
@@ -336,10 +360,19 @@ export default function FinancialHealthCardPage() {
     } finally { setGeneratingXAI(false); }
   }
 
+  const activeWhatIfFeatures = Object.keys(whatIfFeatures).length > 0 ? whatIfFeatures : DEFAULT_WHAT_IF_FEATURES;
+
   const handleWhatIfChange = useCallback((values: Record<string, number>) => {
-    const sim = simulateScore(values);
-    setWhatIfScore(sim);
-  }, []);
+    const isBaseline = Object.keys(values).every(
+      (k) => values[k] === activeWhatIfFeatures[k]
+    );
+    if (isBaseline) {
+      setWhatIfScore(null);
+    } else {
+      const sim = simulateScore(values);
+      setWhatIfScore(sim);
+    }
+  }, [activeWhatIfFeatures]);
 
   if (isRestrictedBorrower) {
     return (
@@ -396,8 +429,9 @@ export default function FinancialHealthCardPage() {
   }
 
   const displayScore = whatIfScore || score;
-  const strengths = displayScore?.contributing_factors?.filter((f: any) => f.shap_value > 0) || [];
-  const risks = displayScore?.contributing_factors?.filter((f: any) => f.shap_value < 0) || [];
+  const activeFactors = displayScore?.contributing_factors || displayScore?.factors || [];
+  const strengths = activeFactors.filter((f: any) => f.shap_value > 0);
+  const risks = activeFactors.filter((f: any) => f.shap_value < 0);
   const deltaScore = whatIfScore && score ? whatIfScore.score - score.score : 0;
 
   return (
@@ -630,7 +664,7 @@ export default function FinancialHealthCardPage() {
                     </div>
                     <span className="text-xs font-mono text-[var(--text-secondary)]">LOCAL EXPLANATIONS</span>
                   </div>
-                  <SHAPWaterfall factors={displayScore.contributing_factors || []} />
+                  <SHAPWaterfall factors={displayScore?.contributing_factors || displayScore?.factors || []} />
                   <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4">
                     <div>
                       <div className="text-[10px] font-mono uppercase tracking-widest text-tier-strong font-bold mb-2.5 flex items-center gap-1.5">
@@ -659,7 +693,7 @@ export default function FinancialHealthCardPage() {
               {/* What-If Simulator (Underwriter only) */}
               {!isBorrower && (
                 <WhatIfSimulator
-                  initialValues={whatIfFeatures}
+                  initialValues={activeWhatIfFeatures}
                   onChange={handleWhatIfChange}
                 />
               )}

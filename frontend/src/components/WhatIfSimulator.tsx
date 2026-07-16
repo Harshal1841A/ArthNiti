@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Sliders } from 'lucide-react';
 
@@ -68,7 +68,14 @@ function tierColor(tier: string): string {
 
 export default function WhatIfSimulator({ initialValues, onChange }: WhatIfSimulatorProps) {
   const [values, setValues] = useState<Record<string, number>>(initialValues);
-  const [originalValues] = useState<Record<string, number>>(initialValues);
+  const [originalValues, setOriginalValues] = useState<Record<string, number>>(initialValues);
+
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      setValues(initialValues);
+      setOriginalValues(initialValues);
+    }
+  }, [JSON.stringify(initialValues)]);
 
   const handleChange = useCallback((key: string, val: number) => {
     const next = { ...values, [key]: val };
