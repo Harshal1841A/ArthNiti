@@ -73,7 +73,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-xs text-[var(--text-muted)] font-medium">Track 03 — Financial Inclusion</div>
+          <div className="text-xs text-[var(--text-muted)] font-medium">Financial Inclusion</div>
           <div className="flex items-center gap-1 rounded-full p-1 border border-[var(--border)] bg-[var(--border-subtle)] transition-colors">
             {themes.map((t) => {
               const Icon = t.icon;
@@ -82,14 +82,13 @@ export default function Landing() {
                 <button
                   key={t.id}
                   onClick={() => setTheme(t.id)}
-                  title={`Switch to ${t.label}`}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
                     isActive
-                      ? 'bg-[var(--text-primary)] text-[var(--text-inverse)] shadow-sm'
+                      ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm border border-[var(--border-strong)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="w-3.5 h-3.5" />
                   <span>{t.label}</span>
                 </button>
               );
@@ -103,7 +102,7 @@ export default function Landing() {
         <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <div>
-              <span className="eyebrow mb-3 block">IDBI INNOVATE 2026 // TRACK 03 // FINANCIAL INCLUSION</span>
+              <span className="eyebrow mb-3 block">IDBI INNOVATE 2026 // FINANCIAL INCLUSION</span>
               <h1 className="text-5xl font-serif text-[var(--text-primary)] leading-tight tracking-tight">
                 AI-Driven MSME <span className="italic text-[var(--accent)]">Financial Health</span> Assessment.
               </h1>

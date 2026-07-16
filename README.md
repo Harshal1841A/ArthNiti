@@ -9,7 +9,7 @@ app_port: 7860
 ---
 
 # ArthNiti
-**MSME Financial Health Card using alternate data (GST, UPI/bank AA, EPFO) for NTC/NTB credit underwriting. Built for IDBI Innovate 2026, Track 03.**
+**MSME Financial Health Card using alternate data (GST, UPI/bank AA, EPFO) for NTC/NTB credit underwriting. Built for IDBI Innovate 2026.**
 
 ---
 

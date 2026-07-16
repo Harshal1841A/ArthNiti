@@ -125,7 +125,7 @@ export function generateMandateReceiptPDF(offer: LoanOffer, mandateId: string): 
   builder.drawText(112, 796, 'DIGITAL LENDING & AA MANDATE RECEIPT', 'F2', 14);
 
   builder.setColor(0.4, 0.42, 0.48);
-  builder.drawText(112, 779, 'IDBI INNOVATE 2026 - TRACK 03 MSME CREDIT SANCTION ADVICE', 'F1', 8.5);
+  builder.drawText(112, 779, 'IDBI INNOVATE 2026 - MSME CREDIT SANCTION ADVICE', 'F1', 8.5);
 
   builder.setColor(0.06, 0.45, 0.28);
   builder.drawText(112, 763, 'VERIFIED OCEN 4.0 ACCOUNT AGGREGATOR TRANSACTION', 'F2', 8);
