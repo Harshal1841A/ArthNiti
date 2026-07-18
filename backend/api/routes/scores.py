@@ -89,6 +89,7 @@ async def score_applicant(
         inference_ms=score_result["inference_ms"],
         data_completeness_pct=score_result["data_completeness_pct"],
         is_synthetic_applicant=applicant.is_synthetic,
+        features=json.loads(features_row.feature_vector_json) if features_row else None,
     )
 
 
@@ -140,6 +141,7 @@ async def list_scores(
             inference_ms=score.inference_ms,
             data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
             is_synthetic_applicant=applicant.is_synthetic if applicant else True,
+            features=json.loads(nf.feature_vector_json) if nf else None,
         ))
     return out
 
@@ -166,4 +168,5 @@ async def get_score(
         inference_ms=score.inference_ms,
         data_completeness_pct=nf.data_completeness_pct if nf else 0.0,
         is_synthetic_applicant=applicant.is_synthetic if applicant else True,
+        features=json.loads(nf.feature_vector_json) if nf else None,
     )

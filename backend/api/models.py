@@ -53,6 +53,7 @@ class ScoreResponse(BaseModel):
     inference_ms: int
     data_completeness_pct: float
     is_synthetic_applicant: bool
+    features: Optional[dict] = None
 
 
 class XAINarrativeResponse(BaseModel):

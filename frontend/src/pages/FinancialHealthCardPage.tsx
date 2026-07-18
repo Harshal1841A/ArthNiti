@@ -225,6 +225,16 @@ export default function FinancialHealthCardPage() {
       if (scores.length) {
         const latest = scores[0];
         setScore(latest);
+        if (latest.features) {
+          setWhatIfFeatures({
+            gst_filing_regularity_12mo: latest.features.gst_filing_regularity_12mo ?? 0.5,
+            bounce_count_90d: latest.features.bounce_count_90d ?? 0,
+            avg_closing_balance: latest.features.avg_closing_balance ?? 0,
+            inflow_volatility_coefficient: latest.features.inflow_volatility_coefficient ?? 0.5,
+            payment_time_consistency_score: latest.features.payment_time_consistency_score ?? 0.5,
+            existing_emi_to_inflow_ratio: latest.features.existing_emi_to_inflow_ratio ?? 0.3,
+          });
+        }
         // Isolated: routing failure must not crash the page
         const routingResp = await api.get(`/v1/routing/${latest.score_id}`).catch(() => ({ data: null }));
         setRouting(routingResp.data);
