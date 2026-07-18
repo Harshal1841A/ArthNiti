@@ -23,6 +23,10 @@ const FEATURES: FeatureSlider[] = [
 interface WhatIfSimulatorProps {
   initialValues: Record<string, number>;
   onChange: (values: Record<string, number>) => void;
+  baselineScore: number;
+  baselineTier: string;
+  simulatedScore?: number | null;
+  simulatedTier?: string | null;
 }
 
 function formatValue(value: number, format: string): string {
@@ -32,29 +36,6 @@ function formatValue(value: number, format: string): string {
   return `${value}`;
 }
 
-function computeScore(features: Record<string, number>): { score: number; tier: string } {
-  const bounce = features.bounce_count_90d ?? 0;
-  const vol = features.inflow_volatility_coefficient ?? 0.5;
-  const neg = features.days_with_negative_balance_90d ?? 0;
-  const gst = features.gst_filing_regularity_12mo ?? 0.5;
-  const pay = features.payment_time_consistency_score ?? 0.5;
-  const bal = features.avg_closing_balance ?? 50000;
-  const emi = features.existing_emi_to_inflow_ratio ?? 0.3;
-
-  const score = Math.max(0, Math.min(100, Math.round(
-    50
-    - bounce * 8
-    - vol * 25
-    - neg * 4
-    + gst * 25
-    + pay * 20
-    + (bal / 100000) * 15
-    - emi * 15
-  )));
-
-  const tier = score >= 75 ? 'STRONG' : score >= 50 ? 'ADEQUATE' : score >= 25 ? 'WATCH' : 'HIGH_RISK';
-  return { score, tier };
-}
 
 function tierColor(tier: string): string {
   switch (tier) {
@@ -66,7 +47,14 @@ function tierColor(tier: string): string {
   }
 }
 
-export default function WhatIfSimulator({ initialValues, onChange }: WhatIfSimulatorProps) {
+export default function WhatIfSimulator({ 
+  initialValues, 
+  onChange,
+  baselineScore,
+  baselineTier,
+  simulatedScore,
+  simulatedTier
+}: WhatIfSimulatorProps) {
   const [values, setValues] = useState<Record<string, number>>(initialValues);
   const [originalValues, setOriginalValues] = useState<Record<string, number>>(initialValues);
 
@@ -89,9 +77,9 @@ export default function WhatIfSimulator({ initialValues, onChange }: WhatIfSimul
   };
 
   const hasChanges = Object.keys(values).some((k) => values[k] !== originalValues[k]);
-  const currentSim = computeScore(values);
-  const baselineSim = computeScore(originalValues);
-  const delta = currentSim.score - baselineSim.score;
+  const currentScore = simulatedScore ?? baselineScore;
+  const currentTier = simulatedTier ?? baselineTier;
+  const delta = currentScore - baselineScore;
 
   return (
     <div className="glass-card p-6 border border-[var(--border)]">
@@ -115,19 +103,19 @@ export default function WhatIfSimulator({ initialValues, onChange }: WhatIfSimul
       {/* Live Counterfactual Simulation HUD Box */}
       <div className="mb-6 p-4 rounded-xl border border-[#334155] bg-[#0f172a] shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="px-3.5 py-2 rounded-lg border" style={{ borderColor: `${tierColor(currentSim.tier)}50`, backgroundColor: `${tierColor(currentSim.tier)}15` }}>
+          <div className="px-3.5 py-2 rounded-lg border" style={{ borderColor: `${tierColor(currentTier)}50`, backgroundColor: `${tierColor(currentTier)}15` }}>
             <div className="text-[10px] font-mono text-[#94a3b8] uppercase">Simulated Score</div>
-            <div className="text-2xl font-mono font-black" style={{ color: tierColor(currentSim.tier) }}>
-              {currentSim.score} <span className="text-xs font-normal text-[#94a3b8]">/ 100</span>
+            <div className="text-2xl font-mono font-black" style={{ color: tierColor(currentTier) }}>
+              {currentScore} <span className="text-xs font-normal text-[#94a3b8]">/ 100</span>
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded border" style={{ color: tierColor(currentSim.tier), borderColor: `${tierColor(currentSim.tier)}40`, backgroundColor: `${tierColor(currentSim.tier)}15` }}>
-                {currentSim.tier}
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded border" style={{ color: tierColor(currentTier), borderColor: `${tierColor(currentTier)}40`, backgroundColor: `${tierColor(currentTier)}15` }}>
+                {currentTier}
               </span>
               <span className="text-xs font-mono text-[#94a3b8]">
-                Baseline: {baselineSim.score} ({baselineSim.tier})
+                Baseline: {baselineScore} ({baselineTier})
               </span>
             </div>
             <div className="text-xs font-mono mt-1 text-[#cbd5e1]">

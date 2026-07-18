@@ -674,6 +674,10 @@ export default function FinancialHealthCardPage() {
                 <WhatIfSimulator
                   initialValues={activeWhatIfFeatures}
                   onChange={handleWhatIfChange}
+                  baselineScore={score?.score ?? 0}
+                  baselineTier={score?.tier ?? 'WATCH'}
+                  simulatedScore={whatIfScore?.score ?? null}
+                  simulatedTier={whatIfScore?.tier ?? null}
                 />
               )}
             </div>
