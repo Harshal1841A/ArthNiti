@@ -65,15 +65,21 @@ export default function WhatIfSimulator({
     }
   }, [JSON.stringify(initialValues)]);
 
-  const handleChange = useCallback((key: string, val: number) => {
-    const next = { ...values, [key]: val };
-    setValues(next);
-    onChange(next);
+  // Debounce the onChange callback to prevent API rate limit (HTTP 429) errors
+  // when dragging the sliders rapidly.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onChange(values);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [values, onChange]);
+
+  const handleChange = useCallback((key: string, val: number) => {
+    setValues((prev) => ({ ...prev, [key]: val }));
+  }, []);
 
   const handleReset = () => {
     setValues(originalValues);
-    onChange(originalValues);
   };
 
   const hasChanges = Object.keys(values).some((k) => values[k] !== originalValues[k]);
