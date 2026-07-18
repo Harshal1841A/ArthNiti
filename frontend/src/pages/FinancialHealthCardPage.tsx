@@ -60,65 +60,6 @@ const DEFAULT_FALLBACK_OFFERS = [
   },
 ];
 
-const DEFAULT_WHAT_IF_FEATURES: Record<string, number> = {
-  gst_filing_regularity_12mo: 0.85,
-  bounce_count_90d: 0,
-  avg_closing_balance: 65000,
-  inflow_volatility_coefficient: 0.35,
-  payment_time_consistency_score: 0.8,
-  existing_emi_to_inflow_ratio: 0.25,
-};
-// NOTE: DEFAULT_WHAT_IF_FEATURES is kept as a last-resort reference but
-// the simulator will NOT render unless real features are loaded from the backend.
-
-// Lightweight score simulation for What-If
-function simulateScore(features: Record<string, number>): {
-  score: number;
-  tier: string;
-  contributing_factors: { feature: string; shap_value: number }[];
-  factors: { feature: string; shap_value: number }[];
-  inference_ms?: number;
-  model_version?: string;
-} {
-  const bounce = features.bounce_count_90d ?? 0;
-  const vol = features.inflow_volatility_coefficient ?? 0.5;
-  const neg = features.days_with_negative_balance_90d ?? 0;
-  const gst = features.gst_filing_regularity_12mo ?? 0.5;
-  const pay = features.payment_time_consistency_score ?? 0.5;
-  const bal = features.avg_closing_balance ?? 50000;
-  const emi = features.existing_emi_to_inflow_ratio ?? 0.3;
-
-  const score = Math.max(0, Math.min(100, Math.round(
-    50
-    - bounce * 8
-    - vol * 25
-    - neg * 4
-    + gst * 25
-    + pay * 20
-    + (bal / 100000) * 15
-    - emi * 15
-  )));
-
-  const tier = score >= 75 ? 'STRONG' : score >= 50 ? 'ADEQUATE' : score >= 25 ? 'WATCH' : 'HIGH_RISK';
-
-  const factors = [
-    { feature: 'gst_filing_regularity_12mo', shap_value: gst * 0.15 },
-    { feature: 'avg_closing_balance', shap_value: (bal / 100000) * 0.12 },
-    { feature: 'payment_time_consistency_score', shap_value: pay * 0.10 },
-    { feature: 'inflow_volatility_coefficient', shap_value: -vol * 0.18 },
-    { feature: 'bounce_count_90d', shap_value: -bounce * 0.08 },
-  ].sort((a, b) => Math.abs(b.shap_value) - Math.abs(a.shap_value));
-
-  return {
-    score,
-    tier,
-    contributing_factors: factors,
-    factors,
-    inference_ms: 12,
-    model_version: 'counterfactual_xgb_sim',
-  };
-}
-
 
 export default function FinancialHealthCardPage() {
   const { currentPersona, setPersona } = useAuth();
