@@ -62,6 +62,37 @@ function KPICard({ title, value, subtitle, trend, trendValue, icon }: any) {
 
 function BorrowerOverview() {
   const { user } = useAuth();
+  // BUG-4 FIX: Fetch real score and offer for APP-SURESH from the backend.
+  // Previously showed hardcoded score=85, ₹25L, 10.5% — none of which matched
+  // the actual model output (ADEQUATE, 61).
+  const [creditScore, setCreditScore] = useState<any>(null);
+  const [topOffer, setTopOffer] = useState<any>(null);
+  const [creditLoading, setCreditLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCredit() {
+      try {
+        await api.post('/v1/demo/seed').catch(() => null);
+        const scoreResp = await api.get('/v1/demo/score/APP-SURESH').catch(() => null);
+        if (scoreResp?.data) setCreditScore(scoreResp.data);
+        const offersResp = await api.get('/v1/demo/offers/APP-SURESH').catch(() => null);
+        if (offersResp?.data?.offers?.length) {
+          setTopOffer(offersResp.data.offers[0]);
+        }
+      } finally {
+        setCreditLoading(false);
+      }
+    }
+    fetchCredit();
+  }, []);
+
+  const scoreVal = creditScore?.score ?? null;
+  const tierVal = creditScore?.tier ?? null;
+  const tierBadgeClass = tierVal === 'STRONG' ? 'badge-strong'
+    : tierVal === 'ADEQUATE' ? 'badge-adequate'
+    : tierVal === 'WATCH' ? 'badge-watch'
+    : tierVal === 'HIGH_RISK' ? 'badge-high-risk' : '';
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans">
       {/* Borrower Welcome Header */}
@@ -98,24 +129,42 @@ function BorrowerOverview() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
           <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Credit Health Score</span>
-          <div className="mt-2 flex items-baseline gap-3">
-            <span className="text-3xl font-bold font-mono text-tier-strong">85</span>
-            <span className="text-sm font-mono text-[var(--text-secondary)]">/ 100</span>
-            <span className="badge badge-strong ml-auto">STRONG</span>
-          </div>
+          {creditLoading ? (
+            <div className="mt-2 text-sm font-mono text-[var(--text-secondary)] animate-pulse">Loading…</div>
+          ) : (
+            <div className="mt-2 flex items-baseline gap-3">
+              <span className={`text-3xl font-bold font-mono`} style={{ color: scoreVal != null ? tierColor(tierVal) : 'var(--text-primary)' }}>
+                {scoreVal ?? '—'}
+              </span>
+              <span className="text-sm font-mono text-[var(--text-secondary)]">{scoreVal != null ? '/ 100' : ''}</span>
+              {tierVal && <span className={`badge ${tierBadgeClass} ml-auto`}>{tierVal}</span>}
+            </div>
+          )}
           <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3">
-            Based on 14-month GSTR-3B filings & steady cash velocity. Eligible for premium rate tiers.
+            Computed from AA bank statement & GST return data via ArthNiti XGBoost model.
           </p>
         </div>
 
         <div className="glass-card p-5 border border-[var(--border)] bg-[var(--bg-card)] rounded-2xl">
           <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Pre-Approved Credit Limit</span>
-          <div className="mt-2 flex items-baseline gap-3">
-            <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">₹25,00,000</span>
-          </div>
+          {creditLoading ? (
+            <div className="mt-2 text-sm font-mono text-[var(--text-secondary)] animate-pulse">Loading…</div>
+          ) : (
+            <div className="mt-2 flex items-baseline gap-3">
+              <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">
+                {topOffer ? `₹${(topOffer.max_amount / 100000).toFixed(0)}L` : '—'}
+              </span>
+            </div>
+          )}
           <p className="mt-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-3 flex items-center justify-between">
-            <span>Interest Rate: <strong className="text-[var(--text-primary)] font-mono">10.5% p.a.</strong></span>
-            <span className="text-tier-strong font-medium flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Disbursal</span>
+            {topOffer ? (
+              <>
+                <span>Interest Rate: <strong className="text-[var(--text-primary)] font-mono">{topOffer.interest_rate_annual}% p.a.</strong></span>
+                <span className="text-tier-strong font-medium flex items-center gap-1"><Zap className="h-3 w-3" /> Instant Disbursal</span>
+              </>
+            ) : (
+              <span className="text-[var(--text-secondary)]">Score required to compute offers</span>
+            )}
           </p>
         </div>
 
@@ -192,6 +241,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [animatingAgent] = useState(false);
+  // BUG-8 FIX: live score lookup keyed by applicant_id, populated from the
+  // /v1/score endpoint so persona grid shows real model scores not hardcoded constants.
+  const [livePersonaScores, setLivePersonaScores] = useState<Record<string, { score: number; tier: string }>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -222,10 +274,6 @@ export default function Dashboard() {
           }
 
           if (applicantsArr.length > 0) {
-            // If the coverage-stats call specifically failed while applicants/
-            // scores succeeded, don't silently substitute a fabricated 100%
-            // figure — that's a real number a judge could read off the screen.
-            // Show what's real, and say plainly that one metric didn't load.
             if (!cov) {
               setError('Live coverage stats unavailable — retry, or check API connectivity. Not showing a placeholder number in its place.');
             }
@@ -234,6 +282,11 @@ export default function Dashboard() {
             const tierCounts: Record<string, number> = { STRONG: 0, ADEQUATE: 0, WATCH: 0, HIGH_RISK: 0 };
             scoresArr.forEach((s: any) => { if (tierCounts[s.tier] !== undefined) tierCounts[s.tier]++; });
             setScores(Object.entries(tierCounts).map(([tier, count]) => ({ tier, count })));
+            // BUG-8 FIX: Build a lookup of live scores so persona grid cards
+            // show the actual backend score rather than the hardcoded constant.
+            const liveScoreMap: Record<string, { score: number; tier: string }> = {};
+            scoresArr.forEach((s: any) => { liveScoreMap[s.applicant_id] = { score: s.score, tier: s.tier }; });
+            setLivePersonaScores(liveScoreMap);
           } else {
             // Previously fell back to entirely fabricated applicants (names
             // that didn't even match the real seeded demo personas) and a
@@ -410,24 +463,30 @@ export default function Dashboard() {
           <span className="text-xs font-mono text-[var(--accent)] uppercase tracking-wider font-semibold">CLICK TO LAUNCH</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {DEMO_PERSONAS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => handleDemoPersonaClick(p.id)}
-              className="text-left rounded-xl border border-[var(--border)] p-4 transition-all hover:border-[var(--text-secondary)] cursor-pointer bg-[var(--surface)] hover:bg-[var(--surface-raised)]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono text-[var(--text-secondary)] font-semibold">{p.id}</span>
-                {p.isNTC && <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)]">NTC</span>}
-              </div>
-              <div className="text-sm font-bold text-[var(--text-primary)] mb-0.5">{p.name}</div>
-              <div className="text-[11px] text-[var(--text-secondary)] font-sans">{p.industry} • {p.city}</div>
-              <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2.5">
-                <span className="text-xl font-bold font-mono" style={{ color: tierColor(p.tier) }}>{p.score}</span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ color: tierColor(p.tier), backgroundColor: `color-mix(in srgb, ${tierColor(p.tier)} 15%, transparent)` }}>{p.tier}</span>
-              </div>
-            </button>
-          ))}
+          {DEMO_PERSONAS.map((p) => {
+            // BUG-8 FIX: prefer live backend score over the hardcoded constant.
+            const live = livePersonaScores[p.id];
+            const displayScore = live?.score ?? p.score;
+            const displayTier = live?.tier ?? p.tier;
+            return (
+              <button
+                key={p.id}
+                onClick={() => handleDemoPersonaClick(p.id)}
+                className="text-left rounded-xl border border-[var(--border)] p-4 transition-all hover:border-[var(--text-secondary)] cursor-pointer bg-[var(--surface)] hover:bg-[var(--surface-raised)]"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono text-[var(--text-secondary)] font-semibold">{p.id}</span>
+                  {p.isNTC && <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)]">NTC</span>}
+                </div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mb-0.5">{p.name}</div>
+                <div className="text-[11px] text-[var(--text-secondary)] font-sans">{p.industry} • {p.city}</div>
+                <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2.5">
+                  <span className="text-xl font-bold font-mono" style={{ color: tierColor(displayTier) }}>{displayScore}</span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ color: tierColor(displayTier), backgroundColor: `color-mix(in srgb, ${tierColor(displayTier)} 15%, transparent)` }}>{displayTier}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

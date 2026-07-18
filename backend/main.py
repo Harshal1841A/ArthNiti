@@ -33,6 +33,7 @@ from backend.api.routes import (
     reviews,
     routing as routing_routes,
     scores,
+    simulate,
     xai,
 )
 from backend.adapters.ocen_adapter import router as ocen_router
@@ -153,6 +154,7 @@ app.include_router(applicants.router, prefix="/api/v1/applicants", tags=["Applic
 app.include_router(consent.router, prefix="/api/v1/consent", tags=["Consent"])
 app.include_router(adapters.router, prefix="/api/v1/adapters", tags=["Adapters"])
 app.include_router(scores.router, prefix="/api/v1/score", tags=["Scores"])
+app.include_router(simulate.router, prefix="/api/v1/score/simulate", tags=["Simulate"])
 app.include_router(xai.router, prefix="/api/v1/xai", tags=["XAI"])
 app.include_router(routing_routes.router, prefix="/api/v1/routing", tags=["Routing"])
 app.include_router(decision_trail.router, prefix="/api/v1/decision-trail", tags=["Decision Trail"])

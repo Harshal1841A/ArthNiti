@@ -373,6 +373,12 @@ async def demo_score(
 
     # Return the pre-computed score result, but wrapped in the same response model
     sc = persona["score_result"]
+    # Serialize features — convert DataSourceType enums to plain strings
+    feat = persona["features"]
+    features_serialized = {
+        k: ([v.value if hasattr(v, "value") else v for v in val] if isinstance(val, list) else val)
+        for k, val in feat.items()
+    }
     return ScoreResponse(
         score_id=f"DEMO-SCORE-{target_id}",
         applicant_id=target_id,
@@ -382,6 +388,7 @@ async def demo_score(
         inference_ms=sc["inference_ms"],
         data_completeness_pct=persona["features"]["data_completeness_pct"],
         is_synthetic_applicant=True,
+        features=features_serialized,
     )
 
 

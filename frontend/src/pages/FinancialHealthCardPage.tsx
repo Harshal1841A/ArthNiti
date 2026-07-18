@@ -68,6 +68,8 @@ const DEFAULT_WHAT_IF_FEATURES: Record<string, number> = {
   payment_time_consistency_score: 0.8,
   existing_emi_to_inflow_ratio: 0.25,
 };
+// NOTE: DEFAULT_WHAT_IF_FEATURES is kept as a last-resort reference but
+// the simulator will NOT render unless real features are loaded from the backend.
 
 // Lightweight score simulation for What-If
 function simulateScore(features: Record<string, number>): {
@@ -295,6 +297,17 @@ export default function FinancialHealthCardPage() {
       const scoreUrl = `/v1/score/${id}`;
       const resp = await api.post(scoreUrl);
       setScore(resp.data);
+      // BUG-2 FIX: populate whatIfFeatures from the freshly returned features
+      if (resp.data?.features) {
+        setWhatIfFeatures({
+          gst_filing_regularity_12mo: resp.data.features.gst_filing_regularity_12mo ?? 0.5,
+          bounce_count_90d: resp.data.features.bounce_count_90d ?? 0,
+          avg_closing_balance: resp.data.features.avg_closing_balance ?? 0,
+          inflow_volatility_coefficient: resp.data.features.inflow_volatility_coefficient ?? 0.5,
+          payment_time_consistency_score: resp.data.features.payment_time_consistency_score ?? 0.5,
+          existing_emi_to_inflow_ratio: resp.data.features.existing_emi_to_inflow_ratio ?? 0.3,
+        });
+      }
       // Routing — isolated, won't crash on miss
       const routingResp = await api.get(`/v1/routing/${resp.data.score_id}`).catch(() => ({ data: null }));
       if (routingResp.data) setRouting(routingResp.data);
@@ -370,19 +383,34 @@ export default function FinancialHealthCardPage() {
     } finally { setGeneratingXAI(false); }
   }
 
-  const activeWhatIfFeatures = Object.keys(whatIfFeatures).length > 0 ? whatIfFeatures : DEFAULT_WHAT_IF_FEATURES;
+  // BUG-7 FIX: Only expose features when loaded from the backend.
+  // Never fall back to DEFAULT_WHAT_IF_FEATURES (ideal borrower) — that
+  // caused the original What-If / SHAP discrepancy bug.
+  const activeWhatIfFeatures = Object.keys(whatIfFeatures).length > 0 ? whatIfFeatures : null;
+  const activeScoreId = score?.score_id ?? null;
 
-  const handleWhatIfChange = useCallback((values: Record<string, number>) => {
-    const isBaseline = Object.keys(values).every(
-      (k) => values[k] === activeWhatIfFeatures[k]
-    );
+  // BUG-3 & BUG-5 FIX: Call the real /score/simulate endpoint instead of the
+  // local linear formula so the What-If score and SHAP values are model-accurate.
+  const handleWhatIfChange = useCallback(async (values: Record<string, number>) => {
+    if (!activeScoreId) return;
+    const isBaseline = activeWhatIfFeatures
+      ? Object.keys(values).every((k) => values[k] === activeWhatIfFeatures[k])
+      : false;
     if (isBaseline) {
       setWhatIfScore(null);
-    } else {
-      const sim = simulateScore(values);
-      setWhatIfScore(sim);
+      return;
     }
-  }, [activeWhatIfFeatures]);
+    try {
+      const resp = await api.post('/v1/score/simulate', {
+        score_id: activeScoreId,
+        overrides: values,
+      });
+      setWhatIfScore(resp.data);
+    } catch {
+      // Silently fall back to null — don't crash the page on a simulate error
+      setWhatIfScore(null);
+    }
+  }, [activeScoreId, activeWhatIfFeatures]);
 
   if (isRestrictedBorrower) {
     return (
@@ -700,8 +728,8 @@ export default function FinancialHealthCardPage() {
                 </div>
               )}
 
-              {/* What-If Simulator (Underwriter only) */}
-              {!isBorrower && (
+              {/* What-If Simulator (Underwriter only, only when real features loaded) */}
+              {!isBorrower && activeWhatIfFeatures && activeScoreId && (
                 <WhatIfSimulator
                   initialValues={activeWhatIfFeatures}
                   onChange={handleWhatIfChange}
